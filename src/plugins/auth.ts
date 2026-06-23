@@ -1,11 +1,7 @@
 import fp from 'fastify-plugin'
 import type { FastifyRequest, FastifyReply } from 'fastify'
 import jwt from '@fastify/jwt'
-import {
-  generateRefreshToken,
-  verifyRefreshToken,
-  revokeRefreshToken
-} from '../services/refresh-token'
+import { generateRefreshToken } from '../services/refresh-token'
 
 const ACCESS_TOKEN_EXPIRES_MINUTES = 15
 
@@ -13,8 +9,6 @@ declare module 'fastify' {
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined>
     generateTokens: (user: { id: number; email: string; name: string | null }) => Promise<{ accessToken: string; refreshToken: string; expiresAt: string }>
-    verifyRefreshToken: (raw: string) => ReturnType<typeof verifyRefreshToken>
-    revokeRefreshToken: (raw: string) => Promise<boolean>
   }
 }
 
@@ -28,6 +22,8 @@ declare module '@fastify/jwt' {
   }
 }
 
+// Decorators here wrap operations that need the Fastify instance (jwt.sign / request.jwtVerify).
+// Pure DB operations (verifyRefreshToken, revokeRefreshToken, etc.) live in services/ and are imported directly by routes.
 export default fp(async function (fastify, _opts) {
   if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is required')
@@ -55,13 +51,5 @@ export default fp(async function (fastify, _opts) {
     )
     const refreshToken = await generateRefreshToken(user.id)
     return { accessToken, refreshToken, expiresAt }
-  })
-
-  fastify.decorate('verifyRefreshToken', async function (raw: string) {
-    return verifyRefreshToken(raw)
-  })
-
-  fastify.decorate('revokeRefreshToken', async function (raw: string) {
-    return revokeRefreshToken(raw)
   })
 })

@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { Prisma } from '../../generated/prisma/client'
 import { loginUser } from '../../services/auth'
 import { createUser, getUserById } from '../../services/user'
-import { REFRESH_TOKEN_EXPIRES_DAYS } from '../../services/refresh-token'
+import { REFRESH_TOKEN_EXPIRES_DAYS, verifyRefreshToken, revokeRefreshToken } from '../../services/refresh-token'
 import { loginRouteSchema, meRouteSchema, registerRouteSchema, refreshRouteSchema, logoutRouteSchema } from './schemas'
 
 type RegisterBody = {
@@ -87,14 +87,14 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
       throw fastify.httpErrors.unauthorized('Missing refresh token')
     }
 
-    const user = await fastify.verifyRefreshToken(raw)
+    const user = await verifyRefreshToken(raw)
 
     if (!user) {
       clearRefreshCookie(reply)
       throw fastify.httpErrors.unauthorized('Invalid or expired refresh token')
     }
 
-    await fastify.revokeRefreshToken(raw)
+    await revokeRefreshToken(raw)
 
     const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
     setRefreshCookie(reply, refreshToken)
@@ -108,7 +108,7 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
     const raw = request.cookies.refreshToken
 
     if (raw) {
-      await fastify.revokeRefreshToken(raw)
+      await revokeRefreshToken(raw)
     }
 
     clearRefreshCookie(reply)
