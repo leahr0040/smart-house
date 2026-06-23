@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync, FastifyReply } from 'fastify'
 import { Prisma } from '../../generated/prisma/client'
 import { loginUser } from '../../services/auth'
 import { createUser, getUserById } from '../../services/user'
@@ -17,7 +17,7 @@ type LoginBody = {
 }
 
 const plugin: FastifyPluginAsync = async (fastify, _opts) => {
-  function setRefreshCookie(reply: { setCookie: (name: string, value: string, options: Record<string, unknown>) => void }, token: string) {
+  function setRefreshCookie(reply: FastifyReply, token: string) {
     reply.setCookie('refreshToken', token, {
       httpOnly: true,
       secure: true,
@@ -27,7 +27,7 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
     })
   }
 
-  function clearRefreshCookie(reply: { clearCookie: (name: string, options: Record<string, unknown>) => void }) {
+  function clearRefreshCookie(reply: FastifyReply) {
     reply.clearCookie('refreshToken', { path: '/auth' })
   }
 
@@ -99,7 +99,7 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
     const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
     setRefreshCookie(reply, refreshToken)
 
-    reply.send({ accessToken, expiresAt, user })
+    reply.send({ accessToken, expiresAt, user: { id: user.id, email: user.email, name: user.name } })
   })
 
   fastify.post('/logout', {

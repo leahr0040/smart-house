@@ -1,9 +1,10 @@
 import Fastify from 'fastify'
 import app from '../app'
+import { env } from './lib/env'
 
 const server = Fastify({
   logger: {
-    level: process.env.LOG_LEVEL || 'info'
+    level: env.LOG_LEVEL
   }
 })
 
@@ -11,8 +12,8 @@ async function start () {
   await server.register(app)
 
   await server.listen({
-    port: Number(process.env.PORT) || 3000,
-    host: process.env.HOST || '127.0.0.1'
+    port: env.PORT,
+    host: env.HOST
   })
 }
 

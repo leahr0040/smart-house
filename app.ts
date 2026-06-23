@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import path from 'node:path'
 import { type FastifyInstance } from 'fastify'
 import AutoLoad from '@fastify/autoload'
