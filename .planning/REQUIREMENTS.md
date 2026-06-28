@@ -1,7 +1,7 @@
 # Requirements: Smart House
 
 **Defined:** 2026-06-25
-**Updated:** 2026-06-28 (event-driven architecture: RabbitMQ, MongoDB events, twin state, commands)
+**Updated:** 2026-06-28 (single current-state projection via morph; user_id denorm; soft-delete everywhere)
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event.
 
 ## v1 Requirements
@@ -13,7 +13,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **HOUSE-01**: User can create a house
 - [ ] **HOUSE-02**: User can list and view their own houses
 - [ ] **HOUSE-03**: User can update a house they own
-- [ ] **HOUSE-04**: User can delete a house they own
+- [ ] **HOUSE-04**: User can delete a house they own (soft delete)
 - [ ] **HOUSE-05**: A user can only access houses they own (cross-tenant access returns 404)
 
 ### Rooms
@@ -21,30 +21,29 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **ROOM-01**: User can create a room in a house they own
 - [ ] **ROOM-02**: User can list rooms in a house they own
 - [ ] **ROOM-03**: User can update a room they own
-- [ ] **ROOM-04**: User can delete a room they own
+- [ ] **ROOM-04**: User can delete a room they own (soft delete)
 
 ### Devices
 
 - [ ] **DEV-01**: User can add a device of a known type (light, AC, heater, sensor) to a room
 - [ ] **DEV-02**: User can list and view devices by room and by house
 - [ ] **DEV-03**: User can update device metadata (e.g. name)
-- [ ] **DEV-04**: User can remove a device (soft-delete)
-- [ ] **DEV-05**: Each device type has a dedicated, typed state table (no JSON state column); shapes validated by TypeBox
+- [ ] **DEV-04**: User can remove a device (soft delete)
+- [ ] **DEV-05**: Per-device-type current state is typed via polymorphic morph (`state_type` + `state_id` → per-type detail tables), validated by TypeBox; no JSON, single current facet (no desired/reported twin)
 
-### Device State (Twin)
+### Device State (current state projection)
 
-- [ ] **STATE-01**: A command sets the **desired** state of each targeted device
-- [ ] **STATE-02**: A device report updates the **reported** state and `sync_status` of a device
-- [ ] **STATE-03**: User can read the current state (desired + reported + sync_status) of a single device
-- [ ] **STATE-04**: User can read current state for all devices in a room
-- [ ] **STATE-05**: User can read a full current-state snapshot of a house
+- [ ] **STATE-01**: A device report updates that device's single current-state record (atomic guarded upsert; applied only if newer than the last event)
+- [ ] **STATE-02**: User can read the current state of a single device they own
+- [ ] **STATE-03**: User can read current state for all devices in a room
+- [ ] **STATE-04**: User can read a full current-state snapshot of a house
 
 ### Commands
 
 - [ ] **CMD-01**: User can issue a command targeting devices via a selector (explicit ids, a room, or a house — with optional device-type filter)
 - [ ] **CMD-02**: The command handler resolves the selector to the user's owned device set (cross-tenant targets excluded)
 - [ ] **CMD-03**: An action invalid for a targeted device type is rejected with a validation error (400) before any dispatch
-- [ ] **CMD-04**: A command fans out to all resolved devices (best-effort); one command intent is recorded, linked to per-device effects
+- [ ] **CMD-04**: A command fans out to all resolved devices (best-effort); one command intent is recorded, linked to per-device effects; the command carries the desired intent + per-device status
 - [ ] **CMD-05**: User can query a command's status (`GET /commands/:id`), including per-device completion (pending / done / partially_failed)
 
 ### Messaging (RabbitMQ)
@@ -52,7 +51,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology — effects exchange (outbound) and reports queue (inbound), with a dead-letter queue
 - [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
 - [ ] **MSG-03**: A simulated device worker consumes effects, applies them, and publishes a report back (stand-in for hardware)
-- [ ] **MSG-04**: A report consumer ingests reports, projects twin state, and appends an event
+- [ ] **MSG-04**: A report consumer ingests reports, appends an event (MongoDB), and updates the device's current-state record (MariaDB)
 - [ ] **MSG-05**: Undeliverable effects and malformed/failed reports are retried and dead-lettered (DLQ)
 
 ### Event History (MongoDB)
@@ -62,11 +61,14 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **EVENT-03**: User can query a device's event history (ownership-scoped: owned device ids resolved in MariaDB first)
 - [ ] **EVENT-04**: User can filter event history by time range
 - [ ] **EVENT-05**: Event history queries use cursor pagination
-- [ ] **EVENT-06**: Current (twin) state is a projection of the event log and can be rebuilt by replay (no DB transactions)
+- [ ] **EVENT-06**: The event log is the source of truth; the current-state projection can be rebuilt by replay (no DB transactions)
 
 ### Data Conventions
 
-- [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including the existing `User` and `RefreshToken` models
+- [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models
+- [ ] **DATA-02**: `user_id` is denormalized onto Room and Device; ownership checks use it directly (no joins through the hierarchy)
+- [ ] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
+- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state and command-status writes use atomic guarded statements (not read-then-write); event idempotency via a MongoDB unique index on a deterministic event id
 
 ## v2 Requirements
 
@@ -78,6 +80,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 - **EVENT-08**: Filter event history by room and by event type
 - **DEV-06**: Device presence tracking (`last_seen_at`)
 - **HOUSE-06**: Per-house timezone for history rendering
+- **STATE-05**: Typed-SQL filtering on state values (e.g. "all ACs above 25°") via a richer projection
 
 ## Open Decisions
 
@@ -101,6 +104,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | Web UI / dashboard | API-only for v1; consumed by clients and a future frontend |
 | WebSocket / SSE live push to clients | Clients poll REST for v1 |
 | OAuth / social login | Email/password auth already shipped and sufficient |
+| Desired/reported twin state per device | Desired intent lives on the command; only the real current state is projected |
 
 ## Traceability
 
@@ -111,7 +115,7 @@ Which phases cover which requirements. **Stale — to be repopulated when the ro
 | (pending roadmap regeneration) | — | Pending |
 
 **Coverage:**
-- v1 requirements: 33 total (HOUSE 5, ROOM 4, DEV 5, STATE 5, CMD 5, MSG 5, EVENT 6, DATA 1, minus EVENT-06 counted as system invariant)
+- v1 requirements: 33 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 5, MSG 5, EVENT 6 incl. EVENT-06 system invariant, DATA 4 minus overlap)
 - Mapped to phases: 0 (pending roadmap regeneration)
 - Unmapped: 33 ⚠️
 
