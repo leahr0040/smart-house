@@ -81,6 +81,11 @@ Tests use the existing convention: Node's built-in runner (`node:test` + `node:a
 - [ ] **TEST-05**: Soft-delete tests — soft-deleted rows are excluded from all reads; a soft-deleted user cannot authenticate
 - [ ] **TEST-06**: Projection rebuild test — current state can be rebuilt from the event log (validates EVENT-06)
 - [ ] **TEST-07**: Validation tests — an illogical command action for a device type is rejected with 400 before dispatch (CMD-03)
+- [ ] **TEST-08**: Auth-boundary tests — every new endpoint returns 401 when called without a valid token
+- [ ] **TEST-09**: Per-device-type state validation — for each device type, valid state values are accepted and out-of-range/invalid values rejected (brightness 0–100, AC temp bounds, sensor is report-only, etc.)
+- [ ] **TEST-10**: Out-of-order guard test — an older (stale) report does not overwrite newer current state (validates the `last_event_at` guard; distinct from idempotency)
+- [ ] **TEST-11**: Selector + fan-out tests — a room/house selector (with optional type filter) resolves to exactly the owned matching devices; a multi-device command emits one event per device sharing `command_id`; a partial failure rolls up to `partially_failed`
+- [ ] **TEST-12**: History query tests — time-range filtering returns only in-range events; cursor pagination is stable under concurrent appends (no duplicates or gaps across pages); a user cannot read another user's device events
 
 ## v2 Requirements
 
@@ -128,9 +133,9 @@ Which phases cover which requirements. **Stale — to be repopulated when the ro
 | (pending roadmap regeneration) | — | Pending |
 
 **Coverage:**
-- v1 requirements: 40 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 5, MSG 5, EVENT 6, DATA 4, TEST 7)
+- v1 requirements: 45 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 5, MSG 5, EVENT 6, DATA 4, TEST 12)
 - Mapped to phases: 0 (pending roadmap regeneration)
-- Unmapped: 40 ⚠️
+- Unmapped: 45 ⚠️
 
 ---
 *Requirements defined: 2026-06-25*
