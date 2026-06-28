@@ -1,18 +1,19 @@
-# Research Summary — Smart-House Device State & Telemetry Platform
+# Research Summary — Smart-House Event-Driven Platform
 
 **Project:** smart-house
-**Synthesized:** 2026-06-25
+**Synthesized:** 2026-06-28
+**Replaces:** SUMMARY.md dated 2026-06-25 (pre-architecture-pivot)
 **Overall confidence:** HIGH
 
 ---
 
 ## Executive Summary
 
-This project extends an already-functional Fastify 5 / Prisma / MariaDB authentication API into a multi-tenant smart-home device-state and telemetry platform. All domain references (Home Assistant, AWS IoT, Azure IoT Hub, Apple HomeKit, Google Home API, SmartThings, Tuya Cloud) converge on the same containment hierarchy — User → House → Room → Device — with denormalized current state for fast reads and an append-only event log for history. The recommended approach keeps strictly within the existing stack (zero new production databases in v1) and adds only `@sinclair/typebox` as a new dependency to satisfy the project's existing TypeBox-as-route-schema-standard.
+This project extends an already-functional Fastify 5 / Prisma / MariaDB authentication API into a multi-tenant, event-driven smart-home device-state and telemetry platform. The architecture pivoted decisively from a single-store, transaction-based model to a three-store event-driven design: **MariaDB** holds the relational hierarchy and twin-state projection (desired vs. reported per device), **MongoDB** holds an immutable append-only event log (the source of truth), and **RabbitMQ** mediates all state changes between the API and devices. Commands fan out as broker messages; a simulated device worker consumes effects and publishes reports; a report consumer projects state and appends events. Nothing about the auth API changes — the event-driven platform layers over it cleanly.
 
-The critical architectural decision is "denormalized current state alongside an append-only event log." Current state lives inline on the Device row (a JSON string validated per device type in the service layer), and every write also inserts an immutable DeviceEvent row — both operations inside a single `prisma.$transaction()`. Device state shapes are enforced by TypeBox discriminated-union validators keyed by device type (`src/lib/device-state.ts`), not DB-level enums, so new device types require code changes but no migrations.
+The recommended approach is well-defined by the PROJECT.md key decisions and has zero open questions about core technology choices. New dependencies are: `mongodb` v6 native driver (not Mongoose, not the Prisma MongoDB connector), `amqplib` + `amqp-connection-manager` for RabbitMQ, and `@fastify/type-provider-typebox` to wire TypeBox into Fastify route handler types. Per-device-type state is stored in dedicated typed tables in MariaDB (not a JSON column), each carrying `desired_*` and `reported_*` columns that faithfully model the twin-state contract. Commands are first-class entities with selector-based fan-out and per-device completion tracking. Every effect and report produces an immutable event document in MongoDB, making the history a complete AI-consumable corpus from day one.
 
-The dominant risk category is multi-tenancy: the existing codebase has zero authorization checks beyond "is the user authenticated," and the hierarchy is four levels deep. Every service function must embed the ownership join in its Prisma query. A close second is event-log schema permanence: columns like `eventKind`, `deviceType`, `source`, and `recordedAt` cost almost nothing at schema-design time and require a full table migration later — they must be locked in before any write path ships.
+The dominant risk category is consistency across two stores without a distributed transaction. The write-order contract — MongoDB event append first, MariaDB projection upsert second, idempotency key enforced at both steps — is the single most important implementation invariant. A close second is multi-tenancy: MongoDB has no awareness of the ownership chain, so every MongoDB query must be preceded by a MariaDB ownership resolution. The existing codebase has zero authorization checks beyond authentication; this debt must be paid in full during the entity CRUD phase before any messaging work begins.
 
 ---
 
@@ -22,104 +23,185 @@ The dominant risk category is multi-tenancy: the existing codebase has zero auth
 
 | Technology | Role | Rationale |
 |---|---|---|
-| `@sinclair/typebox` ^0.34.x (NEW) | Route schemas + type inference | Only new production dependency; plugs into Fastify natively as JSON Schema |
-| MariaDB `Json` column (existing) | Flexible per-device state storage | Avoids migration per new device type; validated in code via TypeBox |
-| Prisma `DeviceEvent` append-only table (new) | Immutable event log | Single-store; designed to extract to time-series DB in v2 without API changes |
-| `BigInt` for `DeviceEvent.id` | Event PK | Avoids Int overflow (~2B row limit) at IoT volumes |
-| Prisma cursor pagination (built-in) | Event history queries | Offset degrades linearly; cursor is O(1) per page |
-| Zod (existing, env-only) | Env validation | Stays isolated to env; NOT used for routes |
+| `mongodb` ^6.x (NEW) | Event history client | Native driver; time-series collection support; no ODM overhead for append-only log |
+| `amqplib` ^0.10.x (NEW) | RabbitMQ AMQP 0-9-1 client | De facto standard; precise topology control |
+| `amqp-connection-manager` ^4.x (NEW) | RabbitMQ reconnection wrapper | Without it, broker restart kills the app permanently |
+| `@fastify/type-provider-typebox` ^4.x (NEW) | TypeBox-to-Fastify wiring | Enables full type inference in route handlers from TypeBox schemas |
+| `@sinclair/typebox` ^0.34.x | Discriminated-union schemas for device state and command actions | Zero-dep; Fastify consumes natively; `Static<>` derives TypeScript types |
+| MariaDB typed state tables (Prisma) | Twin state (desired + reported per device type) | Real columns, indexed, Prisma-typed; replaces old JSON column recommendation |
+| `src/lib/prisma.ts` (existing) | MariaDB singleton — unchanged | Entity hierarchy, twin state, commands, auth |
+| `src/lib/mongo.ts` (NEW) | MongoDB singleton | Event documents only |
+| `src/lib/rabbitmq.ts` (NEW) | AMQP connection + channel wrappers | Decoupled lifecycle from Fastify plugins |
+
+**Reversed from old STACK.md (critical):** JSON column for device state, MariaDB `DeviceEvent` table, `prisma.$transaction()` for dual-write, no message broker in v1, defer second store.
 
 ### From FEATURES.md
 
 **Must-have (table stakes):**
-- User → House → Room → Device CRUD with multi-tenancy throughout
-- Device-type catalog (code-level enum + TypeBox schemas: light, AC, heater, sensor)
-- Current-state read: single device, room scope, house scope
-- Command endpoint `POST /devices/:id/command` — validates, updates state, appends event
-- Report endpoint `POST /devices/:id/report` — same write path, `source = REPORT`
-- Append-only event log with queries by device, by time range, cursor pagination
-- `source` field on every event (command vs. report), full `stateSnapshot` (not diff)
+- User → House → Room → Device CRUD with multi-tenancy throughout (404 for not-owned, not 403)
+- Device-type catalog as TypeBox discriminated-union schemas (light, AC, heater, sensor) — code enum for v1
+- Twin-state reads: single device, room scope, house scope (`desired + reported + sync_status`)
+- Commands: `POST /commands` with selector targeting (explicit ids / room / house + optional type filter), per-device fan-out via RabbitMQ, status queryable via `GET /commands/:id`
+- Illogical action for a device type → 400 before dispatch (CMD-03)
+- Append-only event log in MongoDB; `source`, `event_kind`, `device_type`, `command_id`, `state_snapshot`, `recorded_at` on every document
+- Event history queries: by device, by time range, cursor paginated
 
-**Should-have (include in schema design, implementation can follow):**
-- `eventKind`, `actor_id` for dual-origin tracking
-- `last_seen_at` on Device for presence tracking
-- Bulk house snapshot `GET /houses/:id/snapshot`
-- Timezone field on House
-- Soft-delete on Device (`deletedAt`)
+**Should-have (design into schema, implement as bandwidth allows):**
+- `command_id` linkage on events (multi-device command → one event per device, shared `command_id`)
+- `projection_updated_at` on twin-state rows (expose staleness)
+- Soft-delete on Device (`deleted_at`) from the first migration
+- Timezone field on House (cheap now, expensive to retrofit)
+- `schema_version: 1` on every event document (future AI migration path)
 
-**Defer to future milestone:** Hardware protocol adapters, AI rule engine, WebSocket/SSE, DB-backed device-type catalog, notification delivery, analytics aggregation endpoints.
+**Defer to future milestone:** Real hardware protocol adapters, AI rule engine, WebSocket/SSE push, DB-backed device-type catalog, notification delivery, analytics aggregation.
 
 ### From ARCHITECTURE.md
 
 **Major components:**
-- `src/routes/houses/`, `rooms/`, `devices/`, `events/` — HTTP boundary, TypeBox validation
-- `src/services/house.ts`, `room.ts`, `device.ts`, `event.ts` — pure DB functions with ownership joins
-- `src/lib/device-state.ts` — TypeBox discriminated-union validators keyed by device type
-- Prisma schema additions: House, Room, Device, DeviceEvent with all indexes
+
+| Component | Responsibility |
+|---|---|
+| `src/routes/commands/` | POST /commands (issue); GET /commands/:id (status) |
+| `src/command-handler/index.ts` | Selector resolution (ownership-anchored), TypeBox action validation, command row write, effect publish |
+| `src/command-handler/translator.ts` | Action → EffectMessage translation per device type |
+| `src/workers/device-simulator.ts` | Consumes effects queue, applies, publishes report |
+| `src/workers/report-consumer.ts` | Consumes reports queue, appends event (Mongo), upserts twin (Prisma), updates command status |
+| `src/services/twin-state.ts` | `upsertDesiredState`, `upsertReportedState`, `getDeviceTwinState` |
+| `src/services/event-query.ts` | `queryEvents` — ownership-scoped (MariaDB first), cursor-paged (MongoDB second) |
+| `src/lib/device-actions.ts` | TypeBox action schemas per device type; action→effect translation registry |
 
 **Key patterns:**
-1. Atomic state-update + event-insert via `prisma.$transaction()` — always
-2. Ownership-embedded Prisma queries: `findFirst({ where: { id, house: { userId } } })`
-3. Single `updateDeviceState(deviceId, userId, newState, source)` service function
-4. State validation in `src/lib/device-state.ts` before any DB write
+1. Write-order invariant in report consumer: append to MongoDB first, upsert MariaDB projection second. Abort on Mongo failure; projection failure is tolerable (rebuildable).
+2. Idempotency: every event carries a deterministic `event_id` (`sha256(commandId+deviceId+eventKind)` for effects; `sha256(reportId)` for reports). MongoDB unique index enforces no duplicates.
+3. Ownership-embedded service queries: `device.findFirst({ where: { id, room: { house: { userId } } } })` — the `userId` anchor is never omitted.
+4. Two-step MongoDB access: resolve `device_id` in MariaDB first (ownership check), then query MongoDB — never pass caller-supplied IDs directly to Mongo.
+5. `prefetch(1)` on both RabbitMQ consumers — single in-flight message, bounded requeue blast on crash.
+6. Selector resolution as a shared service function `resolveOwnedDeviceIds(userId, selector)` — one code path for all selector types.
 
-**Schema additions summary:**
-- House: `id (cuid)`, `userId`, `@@index([userId])`
-- Room: `houseId`, `onDelete: Cascade`, `@@index([houseId])`
-- Device: `type (String)`, `currentState (Json)`, `deletedAt (nullable)`, `@@index([roomId])`
-- DeviceEvent: `id (BigInt)`, `source`, `eventKind`, `deviceType (denormalized)`, `stateSnapshot`, `recordedAt`, `@@index([deviceId, recordedAt])`
+**Build order:** Schema + Entity CRUD → Messaging Infrastructure → Command Handler → Simulated Worker → Report Consumer + Projector → Event History Routes → Integration Tests.
 
 ### From PITFALLS.md
 
-**Top 5 critical pitfalls:**
+**Critical pitfalls (must prevent before going live):**
 
 | # | Pitfall | Prevention | Phase |
 |---|---|---|---|
-| 1 | Cross-tenant data leakage | UUID PKs; ownership join in every service; second-user test per route | Phase 1 |
-| 2 | Current-state / event-history split-brain | `prisma.$transaction()` for every state mutation | Phase 2 |
-| 3 | Race condition on concurrent state updates | Optimistic concurrency (`version` column) or `SELECT FOR UPDATE` | Phase 2 |
-| 4 | Over-rigid enums or unvalidated JSON | TypeBox validator map; normalize before storing | Phase 1 |
-| 5 | AI-hostile event schema | `eventKind`, `deviceType`, `source`, `recordedAt` from day one | Phase 1 |
+| 1 | Dual-store consistency: event written, projection not updated (or vice versa) | Mongo write first, Prisma upsert second; nack on Mongo failure; projection rebuild path tested early | Report consumer phase |
+| 2 | Cross-tenant MongoDB query without MariaDB ownership resolution | Two-step contract: resolve owned IDs in MariaDB, then query Mongo; `resolveOwnedDeviceIds()` helper everywhere | Event history phase + command handler |
+| 3 | Device identity spoofing on reports queue | Validate `deviceId` exists in MariaDB before processing any report; design per-device credential now (same contract as v2 hardware) | Messaging phase |
+| 4 | Duplicate events from at-least-once redelivery | Idempotency key (`event_id`) with MongoDB unique index; MariaDB upsert guarded by `last_event_at` timestamp | Messaging phase (consumer day one) |
+| 5 | Poison message / retry storm | Distinguish permanent vs. transient errors; nack-with-requeue only for transient; DLQ for permanent; max retry count via `x-death` | Messaging infra phase |
+| 6 | Out-of-order reports corrupting twin state | Sequence number or `last_event_at` guard on projection upsert — only apply if newer | Report consumer phase |
 
-**Additional schema-time pitfalls:** missing composite index `(deviceId, recordedAt)`, timestamp/timezone chaos (`DATETIME(3)` UTC only), authorization gaps in nested hierarchy, missing soft-delete on Device, unbounded event log growth.
+**Moderate pitfalls (design mitigations in):**
+- Desired state never confirmed → `sync_status: 'timeout'` watchdog + publisher confirms (Pitfall 7)
+- Projection lag not visible → `projection_updated_at` on state rows (Pitfall 8)
+- Unacked message blast on restart → `prefetch(1)` (Pitfall 9)
+- AI-hostile event schema → `event_kind`, `device_type`, `numeric_value`, `schema_version` from day one (Pitfall 10)
+- Timestamp/timezone chaos → UTC everywhere, `recorded_at` + `reported_at` on events, ISO 8601 with offset in API params (Pitfall 11)
+- Cross-tenant selector resolution → selector always anchors to `userId` (Pitfall 12)
+
+**Minor pitfalls:** Soft-delete from first device migration (Pitfall 13); assert topology on boot, fail-fast if missing (Pitfall 14); redact sensitive device state from logs (Pitfall 15).
 
 ---
 
 ## Implications for Roadmap
 
-### Suggested Phase Structure: 3 phases
+### Suggested Phase Structure: 7 phases
 
-**Phase 1 — Entity Modeling & Foundation**
+**Phase 1 — Schema, Entity CRUD, and Multi-Tenancy Foundation**
 
-Rationale: Schema decisions (device type as String, `deletedAt`, `eventKind`, composite indexes) are cheap now, migration-expensive later. Multi-tenancy must be established before any data can be created. Prisma-generated types gate all downstream code.
+Rationale: Prisma-generated TypeScript types gate all downstream code. Multi-tenancy must be established before any data can be created — retrofitting it is the most dangerous technical debt in this codebase. The `@@map` snake_case convention applies to existing models too. Schema decisions (soft-delete `deleted_at`, typed state tables) are cheap now and expensive after data exists.
 
-Delivers: Prisma schema additions + migrations; `src/lib/device-state.ts` TypeBox validators; House/Room/Device CRUD services with ownership; House/Room/Device CRUD routes; current-state read endpoints; multi-tenancy integration tests (second-user 404 per route).
+Delivers: Full Prisma schema (House, Room, Device + 4 typed state tables, Command, CommandDeviceTarget; `@@map` on all including User/RefreshToken); House/Room/Device CRUD routes + services with ownership-embedded queries; `resolveOwnedDeviceIds()` helper; multi-tenancy integration tests (second-user 404 per route).
 
-Pitfalls addressed: 1 (cross-tenant), 4 (state modeling), 9 (hierarchy auth gap), 10 (soft-delete), 8 (AI-hostile schema columns).
+Requirements covered: HOUSE-01–05, ROOM-01–04, DEV-01–05, DATA-01.
+
+Pitfalls addressed: 2 (ownership foundation), 12 (selector scoping), 13 (soft-delete from first migration).
 
 Research flag: **STANDARD PATTERNS — no additional research needed.**
 
 ---
 
-**Phase 2 — Event Log & Write Paths**
+**Phase 2 — Messaging Infrastructure**
 
-Rationale: Event schema must be stable before any write path ships. Command and report share one service function; the transaction boundary is the central correctness invariant.
+Rationale: The MongoDB client singleton and RabbitMQ connection + topology must exist before any component tries to use them. Topology provisioning must fail-fast on boot. The `device_events` collection must be created as a time-series collection here — this cannot be changed after data is written.
 
-Delivers: `DeviceEvent` schema finalized; `updateDeviceState()` service with `prisma.$transaction()`; Command route; Report route; Event query service with cursor pagination; Event history routes; concurrent-update handling.
+Delivers: `src/lib/mongo.ts`; `src/lib/rabbitmq.ts` (AmqpConnectionManager + ChannelWrapper); `src/plugins/mongo.ts` + `src/plugins/rabbitmq.ts`; topology bootstrap (effects exchange, reports exchange, device_effects queue, device_reports queue, DLQ bindings, DLX exchange); env vars `MONGODB_URL`, `MONGODB_DB`, `RABBITMQ_URL`; MongoDB `device_events` time-series collection with `(device_id, recorded_at)` index + `event_id` unique index.
 
-Pitfalls addressed: 2 (split-brain), 3 (race condition), 5 (split-brain), 6 (timestamps), 7 (composite index), 12 (partial writes).
+Requirements covered: MSG-01.
 
-Research flag: **NEEDS RESEARCH** — optimistic concurrency vs. `SELECT FOR UPDATE` in Prisma + `@prisma/adapter-mariadb` has edge cases worth validating before planning.
+Pitfalls addressed: 5 (DLQ topology from the start), 9 (prefetch set in consumer channel init), 14 (assert topology on boot, fail-fast), 11 (timestamp contract established in event schema).
+
+Research flag: **NEEDS RESEARCH** — RabbitMQ topology open decision (exchange types, routing-key patterns) must be resolved before planning. Validate `amqp-connection-manager` v4 channel setup pattern against Fastify `onReady`/`onClose` hooks.
 
 ---
 
-**Phase 3 — Polish & Differentiators**
+**Phase 3 — Command Handler and Dispatcher**
 
-Rationale: These features add value but have no blocking dependencies on each other or on Phase 2 correctness.
+Rationale: Command is the primary write path and the first-class entity at the heart of the event-driven model. The command handler is independently testable as a pure TypeScript module. It must be implemented before the device worker has anything meaningful to consume.
 
-Delivers: Bulk house snapshot; device presence tracking (`last_seen_at`); event queries by room and by event type; retention policy (batch-delete); timezone field on House; full edge-case test coverage.
+Delivers: `src/lib/device-actions.ts` (TypeBox discriminated-union action schemas per device type); `src/command-handler/translator.ts`; `src/command-handler/index.ts` (resolve selector, validate action, write Command + CommandDeviceTarget, publish effects with publisher confirms); `src/services/command.ts`; `POST /commands` (202 Accepted); `GET /commands/:id`.
 
-Pitfalls addressed: 2 (event log growth), 6 (timezone in house-scoped queries).
+Requirements covered: CMD-01–05, MSG-02, STATE-01.
+
+Pitfalls addressed: 2 (ownership in selector resolution), 7 (publisher confirms), 12 (selector anchored to userId).
+
+Research flag: **STANDARD PATTERNS — no additional research needed.**
+
+---
+
+**Phase 4 — Simulated Device Worker**
+
+Rationale: The worker is the stand-in for real hardware and must speak the exact message contract that real devices will use in v2. Standalone worker process (not a Fastify plugin) is cleaner for independent restart.
+
+Delivers: `src/workers/device-simulator.ts` — consumes `device_effects` queue (`prefetch=1`), applies effect to in-memory state map, builds `ReportMessage` with deterministic `report_id`, publishes to `device_reports` exchange; nack/DLQ on malformed effects.
+
+Requirements covered: MSG-03.
+
+Pitfalls addressed: 3 (simulated worker uses same credential contract as v2 hardware), 5 (nack strategy), 9 (`prefetch=1`).
+
+Research flag: **STANDARD PATTERNS — no additional research needed.**
+
+---
+
+**Phase 5 — Report Consumer, State Projection, and Twin-State Reads**
+
+Rationale: The report consumer is the most correctness-critical component. The write-order invariant, idempotency enforcement, and sequence guard must all be in place before the first real message is processed. Twin-state read endpoints depend on the projection being populated.
+
+Delivers: `src/workers/report-consumer.ts` — consumes `device_reports` queue, validates + deduplicates (`event_id` check), appends event to MongoDB, upserts reported state in MariaDB typed table, computes `sync_status`, updates command target + command roll-up, `projection_updated_at` on each upsert; `src/services/twin-state.ts`; `GET /devices/:id/state`, `GET /rooms/:id/state`, `GET /houses/:id/state`.
+
+Requirements covered: MSG-04, MSG-05, STATE-02–05, EVENT-01, EVENT-02, EVENT-06.
+
+Pitfalls addressed: 1 (write-order invariant), 4 (idempotency key + unique index), 6 (`last_event_at` guard on projection upsert), 8 (`projection_updated_at` exposed in API).
+
+Research flag: **NEEDS RESEARCH** — validate idempotency check pattern (unique index behavior) on MongoDB time-series collections before planning.
+
+---
+
+**Phase 6 — Event History Routes**
+
+Rationale: Events are produced by Phase 5; nothing to query before that pipeline runs. The two-step ownership pattern must be the only MongoDB access path.
+
+Delivers: `src/services/event-query.ts` (ownership-scoped two-step, cursor pagination); `GET /devices/:id/events` (with `?before=cursor&limit=N`, ISO 8601 time-range filters with required UTC offset).
+
+Requirements covered: EVENT-03, EVENT-04, EVENT-05.
+
+Pitfalls addressed: 2 (two-step MongoDB access), 11 (UTC offset required in time-range params).
+
+Research flag: **STANDARD PATTERNS — no additional research needed.**
+
+---
+
+**Phase 7 — Integration Tests and End-to-End Verification**
+
+Rationale: The async command-to-event round trip spans three stores and two worker processes. Unit tests cannot verify this path.
+
+Delivers: Command-to-event round-trip tests; cross-tenant 404 tests for every ownership-sensitive endpoint; idempotency tests (redeliver report → exactly one event in Mongo); DLQ routing test (malformed message → lands in DLQ); projection rebuild test (EVENT-06).
+
+Requirements covered: Integration verification of all 33 v1 requirements.
+
+Pitfalls addressed: End-to-end validation of Pitfalls 1, 2, 4, 5.
 
 Research flag: **STANDARD PATTERNS — no additional research needed.**
 
@@ -129,15 +211,19 @@ Research flag: **STANDARD PATTERNS — no additional research needed.**
 
 | Area | Confidence | Notes |
 |---|---|---|
-| Stack — TypeBox for routes | HIGH | Official Fastify recommendation; matches project rule 1.5 |
-| Stack — MariaDB for current state + events | HIGH | Already in use; Prisma JSON stable |
-| Features — entity hierarchy and CRUD | HIGH | Consistent across 6+ domain reference platforms |
-| Features — command/report write paths | HIGH | Standard IoT device-shadow pattern |
-| Architecture — denormalized state + event log | HIGH | Avoids event-sourcing complexity; AI-consumable |
-| Architecture — transaction boundary | HIGH | Standard ACID requirement; Prisma `$transaction` well-supported |
-| Pitfalls — multi-tenancy | HIGH | Directly confirmed by existing CONCERNS.md in codebase |
-| Pitfalls — concurrent update handling | MEDIUM | General pattern known; Prisma + MariaDB adapter specifics less documented |
-| Stack — deferring time-series DB | MEDIUM | Right for v1 scope; future migration effort real but bounded |
+| Stack — MongoDB native driver v6 | HIGH | Official driver; time-series API stable since MongoDB 5.0; no Mongoose/Prisma alternatives viable |
+| Stack — amqplib + amqp-connection-manager | HIGH | Industry-standard combination; well-maintained |
+| Stack — TypeBox discriminated unions for device state | HIGH | Fastify consumes natively; documented and established |
+| Stack — typed per-device-type Prisma tables | HIGH | Prescribed by PROJECT.md; standard Prisma pattern |
+| Features — command as first-class entity with selector fan-out | HIGH | Fully specified in REQUIREMENTS.md CMD-01–05 |
+| Features — twin state (desired + reported + sync_status) | HIGH | AWS IoT Device Shadow / Azure IoT Hub Device Twin confirm this as the standard model |
+| Architecture — event-driven write path | HIGH | Well-established event-sourcing/CQRS projection pattern |
+| Architecture — projection-without-transactions correctness | HIGH | Write-order + idempotency key + at-least-once + unique index is the documented approach |
+| Architecture — MongoDB time-series cursor pagination | MEDIUM | Validate cursor field against actual time-series document structure before Phase 6 planning |
+| Pitfalls — dual-store consistency | HIGH | Directly follow from design choices; prevention strategy well-established |
+| Pitfalls — cross-tenant MongoDB leakage | HIGH | Confirmed by existing CONCERNS.md; two-step pattern is clear |
+| Pitfalls — device identity / spoofing | MEDIUM | Open decision in PROJECT.md; minimum viable protection is clear |
+| Open: RabbitMQ topology details | MEDIUM | Client choice is locked; topology details are an open decision for Phase 2 planning |
 
 **Overall: HIGH**
 
@@ -145,20 +231,27 @@ Research flag: **STANDARD PATTERNS — no additional research needed.**
 
 ## Gaps to Address During Planning
 
-1. **Optimistic concurrency implementation** — Prisma has no built-in optimistic locking primitive. Validate exact pattern (`version` column with conditional update, or `$executeRaw SELECT FOR UPDATE`) against Prisma + `@prisma/adapter-mariadb` before Phase 2 planning.
+1. **RabbitMQ topology open decision** — Exchange types (topic vs. direct), routing-key patterns for effects and reports, DLQ policy (TTL, max retries). Must be resolved before Phase 2 planning.
 
-2. **`Json` vs. `String` for `currentState`/`stateSnapshot`** — STACK.md recommends Prisma `Json` type; PITFALLS.md notes MariaDB JSON is less mature than Postgres JSONB. Recommendation: use Prisma `Json`; avoid server-side JSON path queries (full-document read/write only). If portability needed, use `String` in Prisma + serialize/parse in service layer.
+2. **Device identity / credential on reports queue** — Broker-level only vs. per-device token validated in the report consumer. Must be resolved before Phase 5 planning. Minimum viable: MariaDB existence check. Recommended: per-device shared secret (same contract as v2 hardware).
 
-3. **Event retention defaults** — Product decision needed before Phase 2 schema finalized: e.g., 90 days for sensor readings, indefinite for user commands.
+3. **`cuid` vs. `uuid` for entity PKs** — Confirm one standard before Phase 1 planning. `cuid` is fine for v1.
 
-4. **`cuid` vs. `uuid` for entity PKs** — ARCHITECTURE.md uses `cuid()` (sortable, good for cursor pagination); PITFALLS.md recommends UUID for anti-enumeration. Functionally equivalent for security purposes; confirm one standard before Phase 1 migration.
+4. **MongoDB cursor field on time-series collections** — Validate whether `recorded_at`-based or `_id`-based cursor is correct. `_id` on time-series documents is bucket-generated, not per-measurement.
+
+5. **Event retention defaults** — Collection must be created at Phase 2 with a retention approach in mind. Confirm default (no TTL for v1?) before Phase 2 planning.
+
+6. **Worker process topology** — Standalone Node.js processes (preferred) vs. `fastify.addHook('onReady')` spawned threads. Resolve before Phase 4/5 planning.
 
 ---
 
 ## Sources (Aggregated)
 
-- Project codebase: `CLAUDE.md`, `PLAN.md`, `.planning/PROJECT.md`, `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/CONCERNS.md`
-- Prisma docs: Json field type, cursor pagination, BigInt, `$transaction`
-- Fastify docs: TypeBox type provider, `@fastify/autoload`
-- Domain references: Home Assistant, AWS IoT Device Shadow, Azure IoT Hub Device Twin, Google Home API, Apple HomeKit, Tuya Cloud API, SmartThings, OpenHAB
-- MariaDB docs: JSON column (10.2+, stable 10.5+), InnoDB composite index behavior, `DATETIME(3)` vs. `TIMESTAMP`
+- Project ground truth: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` (HIGH confidence, authoritative)
+- Project codebase: `CLAUDE.md`, `.planning/codebase/ARCHITECTURE.md`, `.planning/codebase/CONCERNS.md` (HIGH confidence, direct analysis)
+- MongoDB Node.js Driver v6 documentation (official)
+- `amqplib` and `amqp-connection-manager` npm/GitHub documentation
+- `@sinclair/typebox` v0.34 + `@fastify/type-provider-typebox` official Fastify docs
+- Domain references: AWS IoT Device Shadow, Azure IoT Hub Device Twin, Home Assistant, Apple HomeKit, Google Home API, Tuya Cloud API, SmartThings, OpenHAB
+- Event-sourcing / CQRS community practice: projection-without-transactions, idempotent consumer, at-least-once delivery handling
+- RabbitMQ documentation: topic exchange, DLQ, prefetch, publisher confirms, at-least-once semantics
