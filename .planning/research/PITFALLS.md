@@ -4,6 +4,13 @@
 **Researched:** 2026-06-28
 **Confidence:** HIGH — grounded in project codebase analysis (CONCERNS.md, PROJECT.md, REQUIREMENTS.md) and established patterns in event-driven IoT/CQRS systems.
 
+> **⚠ 2026-06-28 UPDATE (b) — supersedes parts of this document.** The data model was refined after this doc was written. Where this document conflicts with the points below, the points below win (PROJECT.md / REQUIREMENTS.md are authoritative).
+>
+> - **No desired/reported twin.** Each device has a SINGLE current-state record, updated on report. "Desired"/pending lives on the `commands` table. All `desired_*` / `reported_*` columns and `sync_status` are removed.
+> - **Current state via polymorphic morph** (`state_type` + `state_id` → per-type detail tables); no JSON; loose FK integrity acceptable (rebuildable projection).
+> - **`user_id` denormalized on Room and Device** (no ownership joins; batched `IN`, no N+1). **Soft delete (`deleted_at`)** on User/House/Room/Device. **Atomic guarded updates** (single conditional `UPDATE … WHERE last_event_at < :incoming`); event idempotency via Mongo unique index.
+> - **Pitfalls impact:** the **twin-drift** pitfall (desired never confirmed → stale) is now **MOOT** — there is no twin. **Dual-store consistency** still applies (the single-facet current-state projection is still synced from the event log) but is simpler. **New pitfalls to track:** (1) forgetting to filter `deleted_at` in a read → soft-deleted rows leak; (2) failing to set the denormalized `user_id` at create / treating it as mutable → ownership drift; (3) a soft-deleted user retaining a valid JWT until expiry → check `deleted_at` on auth.
+
 ---
 
 ## Superseded Pitfalls (From Previous Version — Now Moot)

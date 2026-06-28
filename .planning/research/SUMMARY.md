@@ -5,6 +5,16 @@
 **Replaces:** SUMMARY.md dated 2026-06-25 (pre-architecture-pivot)
 **Overall confidence:** HIGH
 
+> **⚠ 2026-06-28 UPDATE (b) — supersedes parts of this summary.** The data model was refined after this was synthesized. Where this conflicts with the points below, the points below win (PROJECT.md / REQUIREMENTS.md are authoritative).
+>
+> - **No desired/reported twin.** Each device has a SINGLE current-state record (its real state), updated on report. "Desired"/pending lives on the `commands` table. All `desired_*` / `reported_*` columns and `sync_status` are removed.
+> - **Current state via polymorphic morph** (`state_type` + `state_id` → per-type detail tables); no JSON; new type = new detail table, no `Device` change; loose FK integrity OK (rebuildable projection).
+> - **`user_id` denormalized on Room and Device** (ownership without joins; batched `IN`, no N+1).
+> - **Soft delete (`deleted_at`)** on User/House/Room/Device; reads exclude soft-deleted; soft-deleted user cannot authenticate.
+> - **Atomic guarded updates** (single conditional `UPDATE … WHERE last_event_at < :incoming`); event idempotency via a Mongo unique index.
+> - **`commands` selector** is a TypeBox discriminated union; stored normalized (`selector_kind` + `selector_scope_id` + `selector_device_type`) with resolved devices in `command_targets`.
+> - **Summary impact:** phase structure below is unchanged in shape; the "typed per-type state tables + twin" work becomes "single current-state projection via morph." STATE requirements drop from 5 → 4.
+
 ---
 
 ## Executive Summary

@@ -6,6 +6,16 @@
 
 > **SUPERSEDES:** The 2026-06-25 ARCHITECTURE.md. The earlier document recommended (a) denormalized `currentState` JSON column on the Device row, (b) DB transactions to atomically update state + insert event, (c) REST endpoints for device reports, and (d) no message broker. All four are superseded by the event-driven pivot. See "Superseded Guidance" section at the end of this file.
 
+> **⚠ 2026-06-28 UPDATE (b) — supersedes parts of this document.** The data model was refined after this doc was written. Where this document conflicts with the points below, the points below win (PROJECT.md / REQUIREMENTS.md are authoritative).
+>
+> - **No desired/reported twin.** Each device has a SINGLE current-state record (its real state), updated on report. "Desired"/pending lives on the `commands` table, not per device. All `desired_*` / `reported_*` columns and `sync_status` are removed.
+> - **Current state via polymorphic morph.** Per-device-type state is referenced by (`state_type`, `state_id`) → per-type detail tables. No JSON. New device type = new detail table, no `Device` change. FK integrity is loose by design — acceptable because current state is a rebuildable projection.
+> - **`user_id` denormalized on Room and Device.** Ownership checks use it directly (no joins through house→room); multi-device paths use batched `IN` queries (no N+1).
+> - **Soft delete (`deleted_at`) on User, House, Room, Device.** Reads exclude soft-deleted rows; a soft-deleted user cannot authenticate.
+> - **Atomic guarded updates.** Current-state and command-status writes are a single conditional `UPDATE … WHERE last_event_at < :incoming` (never read-then-write). Event idempotency via a MongoDB unique index on a deterministic event id.
+> - **`commands` table.** API selector is a TypeBox discriminated union (`{kind:'devices'|'room'|'house', …}`). Stored normalized: `selector_kind` enum (DEVICES|ROOM|HOUSE) + `selector_scope_id` + `selector_device_type`; resolved devices in a `command_targets` table (per-device status).
+> - **Architecture impact:** the report consumer updates the single current-state record (not a desired/reported twin) and rolls up `command_targets` status. The rest of the command→effect→report→event flow holds.
+
 ---
 
 ## Recommended Architecture
