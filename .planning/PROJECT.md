@@ -95,6 +95,16 @@ The system always reflects the true current state of the house AND preserves a c
 | Concrete RabbitMQ topology (exchange types, routing keys, DLQ policy) | Messaging-infra phase |
 | Event retention defaults (product decision) | Event-history phase |
 
+## Development Process (per phase)
+
+Every phase plan must open with a **structure-first, test-first** sequence before any implementation tasks. The planner bakes these as the first tasks of each PLAN.md:
+
+1. **Scaffold** — create the phase's files with real signatures, types, and properties; bodies are `// TODO:` only, no logic.
+2. **Tests** — write the phase's unit + integration tests (`node:test` + `build(t)` / `app.inject()`) covering its requirements; they compile and run red.
+3. **Implement** — fill in logic task-by-task until the tests pass.
+
+This is a hard rule for planning and execution — see Working Style in CLAUDE.md.
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
