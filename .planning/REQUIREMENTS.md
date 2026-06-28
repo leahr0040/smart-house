@@ -70,6 +70,18 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
 - [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state and command-status writes use atomic guarded statements (not read-then-write); event idempotency via a MongoDB unique index on a deterministic event id
 
+### Testing
+
+Tests use the existing convention: Node's built-in runner (`node:test` + `node:assert`), the `build(t)` helper that spins up a full Fastify instance, and `app.inject()` (no real HTTP). Tests run against compiled `dist/`. Each phase ships its own tests; the items below are the cross-cutting guarantees.
+
+- [ ] **TEST-01**: Every ownership-scoped endpoint has a multi-tenancy test — a second user gets 404 for resources they don't own
+- [ ] **TEST-02**: Command→event round-trip test — issuing a command produces effects, the simulated worker reports, an event is appended (MongoDB), and the device's current state is updated
+- [ ] **TEST-03**: Idempotency test — a redelivered report yields exactly one event (unique-index dedupe) and does not corrupt current state
+- [ ] **TEST-04**: DLQ test — a malformed/poison message is dead-lettered rather than retried forever
+- [ ] **TEST-05**: Soft-delete tests — soft-deleted rows are excluded from all reads; a soft-deleted user cannot authenticate
+- [ ] **TEST-06**: Projection rebuild test — current state can be rebuilt from the event log (validates EVENT-06)
+- [ ] **TEST-07**: Validation tests — an illogical command action for a device type is rejected with 400 before dispatch (CMD-03)
+
 ## v2 Requirements
 
 Deferred to a future release. Tracked but not in the current roadmap.
@@ -92,6 +104,7 @@ Resolve before planning the relevant phase (not yet committed to a requirement).
 | `cuid` vs `uuid` for entity PKs | Houses phase (first entity) |
 | Concrete RabbitMQ topology (exchange types, routing keys, DLQ policy) | MSG-01 |
 | Event retention defaults | EVENT-07 (v2) |
+| Test infrastructure for RabbitMQ + MongoDB (testcontainers vs dockerized test env vs in-process fakes for the broker/consumer) | TEST-02..06 |
 
 ## Out of Scope
 
@@ -115,9 +128,9 @@ Which phases cover which requirements. **Stale — to be repopulated when the ro
 | (pending roadmap regeneration) | — | Pending |
 
 **Coverage:**
-- v1 requirements: 33 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 5, MSG 5, EVENT 6 incl. EVENT-06 system invariant, DATA 4 minus overlap)
+- v1 requirements: 40 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 5, MSG 5, EVENT 6, DATA 4, TEST 7)
 - Mapped to phases: 0 (pending roadmap regeneration)
-- Unmapped: 33 ⚠️
+- Unmapped: 40 ⚠️
 
 ---
 *Requirements defined: 2026-06-25*
