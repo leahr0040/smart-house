@@ -51,7 +51,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology — effects exchange (outbound) and reports queue (inbound), with a dead-letter queue
 - [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
 - [ ] **MSG-03**: A simulated device worker consumes effects, applies them, and publishes a report back (stand-in for hardware)
-- [ ] **MSG-04**: A report consumer ingests reports, appends an event (MongoDB), and updates the device's current-state record (MariaDB)
+- [ ] **MSG-04**: A report consumer ingests reports (validating the `device_id` exists and is owned; `device_token` envelope field reserved, unenforced in v1), appends an event (MongoDB), and updates the device's current-state record (MariaDB)
 - [ ] **MSG-05**: Undeliverable effects and malformed/failed reports are retried and dead-lettered (DLQ)
 
 ### Event History (MongoDB)
@@ -72,7 +72,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 
 ### Testing
 
-Tests use the existing convention: Node's built-in runner (`node:test` + `node:assert`), the `build(t)` helper that spins up a full Fastify instance, and `app.inject()` (no real HTTP). Tests run against compiled `dist/`. Each phase ships its own tests; the items below are the cross-cutting guarantees.
+Tests use the existing convention: Node's built-in runner (`node:test` + `node:assert`), the `build(t)` helper that spins up a full Fastify instance, and `app.inject()` (no real HTTP). Tests run against compiled `dist/`. Async integration tests use **testcontainers** to spin up real MariaDB + MongoDB + RabbitMQ; infra-free logic (validators, selector resolution, translator) uses pure unit tests. Each phase ships its own tests; the items below are the cross-cutting guarantees.
 
 - [ ] **TEST-01**: Every ownership-scoped endpoint has a multi-tenancy test — a second user gets 404 for resources they don't own
 - [ ] **TEST-02**: Command→event round-trip test — issuing a command produces effects, the simulated worker reports, an event is appended (MongoDB), and the device's current state is updated
@@ -99,17 +99,16 @@ Deferred to a future release. Tracked but not in the current roadmap.
 - **HOUSE-06**: Per-house timezone for history rendering
 - **STATE-05**: Typed-SQL filtering on state values (e.g. "all ACs above 25°") via a richer projection
 
-## Open Decisions
+## Resolved Decisions (2026-06-29)
 
-Resolve before planning the relevant phase (not yet committed to a requirement).
-
-| Decision | Affects |
-|----------|---------|
-| Device identity/auth: broker-level only vs per-device token validated in the report consumer | MSG-04, report consumer |
-| `cuid` vs `uuid` for entity PKs | Houses phase (first entity) |
-| Concrete RabbitMQ topology (exchange types, routing keys, DLQ policy) | MSG-01 |
-| Event retention defaults | EVENT-07 (v2) |
-| Test infrastructure for RabbitMQ + MongoDB (testcontainers vs dockerized test env vs in-process fakes for the broker/consumer) | TEST-02..06 |
+| Decision | Resolution | Affects |
+|----------|-----------|---------|
+| Device report trust | Validate `device_id` exists/owned in v1; reserve a `device_token` envelope field (unenforced) for v2 per-device secrets | MSG-04, report consumer |
+| Entity PK type | **uuid v7** for new entities (House/Room/Device/Command); User/RefreshToken stay Int | Houses phase (first entity) |
+| RabbitMQ topology | **Topic** exchanges (effects/reports) + dead-letter exchange/queue; `prefetch=1` on consumers | MSG-01 |
+| Event retention | **No TTL in v1** — retain all events; archival deferred | EVENT-07 (v2) |
+| Test infrastructure | **Testcontainers** (MariaDB + MongoDB + RabbitMQ) for async integration tests; pure unit tests for infra-free logic | TEST-02..06 |
+| Existing table names | Align `User`/`RefreshToken` to `users`/`refresh_tokens` via `@@map` (rename migration); columns already mapped | DATA-01 |
 
 ## Out of Scope
 

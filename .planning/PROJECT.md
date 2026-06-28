@@ -85,15 +85,16 @@ The system always reflects the true current state of the house AND preserves a c
 | Reports flow in via RabbitMQ only (no REST report endpoint) | Exercises the exact event-driven path real hardware uses in v2 | — Pending |
 | snake_case via `@map`/`@@map`, including existing models | Consistent DB convention across the schema | — Pending |
 | Multi-tenant from day one; API-only v1; AI deferred | Existing auth supports many users; ship the platform first | — Pending |
+| Entity PKs: uuid v7 for new domain entities (House/Room/Device/Command); User/RefreshToken stay Int | Non-enumerable + time-sortable IDs for URL-exposed multi-tenant resources | — Pending |
+| Device report trust: validate device_id exists/owned in v1; reserve a `device_token` envelope field for v2 per-device secrets | Only our worker publishes in v1; non-breaking path to real hardware auth | — Pending |
+| RabbitMQ: topic exchanges (effects/reports) + dead-letter exchange/queue, `prefetch=1` | Future per-device/type/room routing at no extra cost; bounded redelivery | — Pending |
+| Event retention: no TTL in v1, retain all events | Events are the source of truth + AI corpus + state-rebuild source; archival deferred to v2 | — Pending |
+| Tests: testcontainers (MariaDB + MongoDB + RabbitMQ) for async integration; pure unit tests for infra-free logic | Faithful DLQ/idempotency/redelivery semantics; mocks give false confidence | — Pending |
+| Align existing tables to snake_case via `@@map` (`users`, `refresh_tokens`) — rename migration | Consistency; columns are already mapped, tables are not | — Pending |
 
-### Open decisions (to resolve before the relevant phase)
+### Open decisions
 
-| Question | Needed by |
-|----------|-----------|
-| Device identity/auth: broker-level only vs per-device token validated in the report consumer | Messaging / report-consumer phase |
-| `cuid` vs `uuid` for entity PKs | First entity phase |
-| Concrete RabbitMQ topology (exchange types, routing keys, DLQ policy) | Messaging-infra phase |
-| Event retention defaults (product decision) | Event-history phase |
+All resolved as of 2026-06-29. (See the rows above.)
 
 ## Development Process (per phase)
 
