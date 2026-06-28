@@ -1,11 +1,12 @@
 # Requirements: Smart House
 
 **Defined:** 2026-06-25
+**Updated:** 2026-06-28 (event-driven architecture: RabbitMQ, MongoDB events, twin state, commands)
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event.
 
 ## v1 Requirements
 
-Requirements for the smart-home data-platform milestone. Each maps to roadmap phases. Built on the existing Fastify 5 + Prisma + MariaDB auth API.
+Requirements for the event-driven smart-home platform milestone. Built on the existing Fastify 5 + Prisma + MariaDB auth API; adds MongoDB (events) and RabbitMQ (messaging).
 
 ### Houses
 
@@ -28,22 +29,44 @@ Requirements for the smart-home data-platform milestone. Each maps to roadmap ph
 - [ ] **DEV-02**: User can list and view devices by room and by house
 - [ ] **DEV-03**: User can update device metadata (e.g. name)
 - [ ] **DEV-04**: User can remove a device (soft-delete)
-- [ ] **DEV-05**: Device state values are validated per device type in code (TypeBox schema per type)
+- [ ] **DEV-05**: Each device type has a dedicated, typed state table (no JSON state column); shapes validated by TypeBox
 
-### State
+### Device State (Twin)
 
-- [ ] **STATE-01**: User can issue a command that changes a device's state (e.g. turn AC on, set target temp)
-- [ ] **STATE-02**: A device/sensor can report its state or reading (ingest)
-- [ ] **STATE-03**: User can read the current state of a single device
+- [ ] **STATE-01**: A command sets the **desired** state of each targeted device
+- [ ] **STATE-02**: A device report updates the **reported** state and `sync_status` of a device
+- [ ] **STATE-03**: User can read the current state (desired + reported + sync_status) of a single device
 - [ ] **STATE-04**: User can read current state for all devices in a room
 - [ ] **STATE-05**: User can read a full current-state snapshot of a house
 
-### History
+### Commands
 
-- [ ] **EVENT-01**: Every command and report is recorded as an immutable event (source, timestamp, full state snapshot)
-- [ ] **EVENT-02**: User can query a device's event history
-- [ ] **EVENT-03**: User can filter event history by time range
-- [ ] **EVENT-04**: Event history queries use cursor pagination
+- [ ] **CMD-01**: User can issue a command targeting devices via a selector (explicit ids, a room, or a house — with optional device-type filter)
+- [ ] **CMD-02**: The command handler resolves the selector to the user's owned device set (cross-tenant targets excluded)
+- [ ] **CMD-03**: An action invalid for a targeted device type is rejected with a validation error (400) before any dispatch
+- [ ] **CMD-04**: A command fans out to all resolved devices (best-effort); one command intent is recorded, linked to per-device effects
+- [ ] **CMD-05**: User can query a command's status (`GET /commands/:id`), including per-device completion (pending / done / partially_failed)
+
+### Messaging (RabbitMQ)
+
+- [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology — effects exchange (outbound) and reports queue (inbound), with a dead-letter queue
+- [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
+- [ ] **MSG-03**: A simulated device worker consumes effects, applies them, and publishes a report back (stand-in for hardware)
+- [ ] **MSG-04**: A report consumer ingests reports, projects twin state, and appends an event
+- [ ] **MSG-05**: Undeliverable effects and malformed/failed reports are retried and dead-lettered (DLQ)
+
+### Event History (MongoDB)
+
+- [ ] **EVENT-01**: Every effect (command-originated) and report (device-originated) is recorded as an immutable event document in MongoDB (`source`, `event_kind`, `device_id`, `device_type`, `command_id`, snapshot, `recorded_at`)
+- [ ] **EVENT-02**: A multi-device command produces one linked event per involved device (shared `command_id`)
+- [ ] **EVENT-03**: User can query a device's event history (ownership-scoped: owned device ids resolved in MariaDB first)
+- [ ] **EVENT-04**: User can filter event history by time range
+- [ ] **EVENT-05**: Event history queries use cursor pagination
+- [ ] **EVENT-06**: Current (twin) state is a projection of the event log and can be rebuilt by replay (no DB transactions)
+
+### Data Conventions
+
+- [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including the existing `User` and `RefreshToken` models
 
 ## v2 Requirements
 
@@ -51,10 +74,21 @@ Deferred to a future release. Tracked but not in the current roadmap.
 
 ### History & Devices
 
-- **EVENT-05**: Event retention policy (e.g. configurable age-based purge)
-- **EVENT-06**: Filter event history by room and by event type
+- **EVENT-07**: Event retention policy (e.g. configurable age-based purge / archival)
+- **EVENT-08**: Filter event history by room and by event type
 - **DEV-06**: Device presence tracking (`last_seen_at`)
 - **HOUSE-06**: Per-house timezone for history rendering
+
+## Open Decisions
+
+Resolve before planning the relevant phase (not yet committed to a requirement).
+
+| Decision | Affects |
+|----------|---------|
+| Device identity/auth: broker-level only vs per-device token validated in the report consumer | MSG-04, report consumer |
+| `cuid` vs `uuid` for entity PKs | Houses phase (first entity) |
+| Concrete RabbitMQ topology (exchange types, routing keys, DLQ policy) | MSG-01 |
+| Event retention defaults | EVENT-07 (v2) |
 
 ## Out of Scope
 
@@ -62,25 +96,25 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| AI automation-suggestion engine | Future milestone; v1 builds the clean data foundation it will consume |
-| Real hardware / protocol integration (MQTT, Zigbee, Home Assistant) | v1 uses simulated API clients; no physical outbound control |
-| WebSocket / SSE live streaming | Polling/REST is sufficient for v1 |
+| AI automation-suggestion engine | Future milestone; v1 builds the event foundation it will consume |
+| Real hardware device drivers / physical protocol adapters | v1 uses a simulated device worker over RabbitMQ; messaging infra is in scope, physical drivers are not |
 | Web UI / dashboard | API-only for v1; consumed by clients and a future frontend |
+| WebSocket / SSE live push to clients | Clients poll REST for v1 |
 | OAuth / social login | Email/password auth already shipped and sufficient |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements. **Stale — to be repopulated when the roadmap is regenerated after architecture changes.**
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated during roadmap creation) | — | Pending |
+| (pending roadmap regeneration) | — | Pending |
 
 **Coverage:**
-- v1 requirements: 23 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 23 ⚠️
+- v1 requirements: 33 total (HOUSE 5, ROOM 4, DEV 5, STATE 5, CMD 5, MSG 5, EVENT 6, DATA 1, minus EVENT-06 counted as system invariant)
+- Mapped to phases: 0 (pending roadmap regeneration)
+- Unmapped: 33 ⚠️
 
 ---
 *Requirements defined: 2026-06-25*
-*Last updated: 2026-06-25 after initial definition*
+*Last updated: 2026-06-28 after architecture discussion*
