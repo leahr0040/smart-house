@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A multi-tenant smart-home **state + telemetry platform**, built event-driven so it is ready for real hardware. Each user owns one or more houses, divided into rooms, each containing smart devices (lights, air conditioners, heaters, sensors). Users issue commands (including bulk commands like "turn off all the lights") that fan out to devices over a message broker; devices report back their actual state. The system keeps each device's **current state** and records an immutable **event history** of every effect and report for future AI analysis. Built on an existing Fastify 5 + Prisma + MariaDB backend with JWT auth already in place.
+A multi-tenant smart-home **state + telemetry platform**, built event-driven so it is ready for real hardware. Each user owns one or more houses, divided into rooms, each containing smart devices (lights, air conditioners, heaters, sensors). Users issue commands (including bulk commands like "turn off all the lights") that fan out to devices over a message broker; devices report back their actual state. The system keeps each device's **current state** and records an immutable **event history** of every command effect and device report for future AI analysis. Built on an existing Fastify 5 + Prisma + MariaDB backend with JWT auth already in place. *(v1 is a command/state platform; autonomous sensor telemetry — periodic command-less readings — is deferred to v2.)*
 
 ## Core Value
 
@@ -44,6 +44,7 @@ The system always reflects the true current state of the house AND preserves a c
 - WebSocket / SSE push to clients — clients poll REST for v1
 - OAuth / social login — email/password auth is sufficient for v1
 - Typed-SQL filtering on state values (e.g. "all ACs above 25°") — not a v1 read pattern; add a richer projection later if needed (rebuildable from events)
+- Autonomous sensor telemetry (periodic command-less sensor readings) — deferred to v2; v1 sensors are modeled and report-only but emit no autonomous data, so all v1 reports are command-driven
 
 ## Context
 
@@ -62,7 +63,9 @@ The system always reflects the true current state of the house AND preserves a c
 - **Multi-tenancy**: All house/room/device/command/event data scoped to the owning user; no cross-tenant access. `user_id` is **denormalized onto Room and Device** so ownership checks never join through the hierarchy. History queries resolve owned device ids in MariaDB before querying MongoDB.
 - **No N+1**: multi-device paths use batched `IN` queries; ownership uses the denormalized `user_id`, never per-row joins.
 - **No DB transactions for state**: the MongoDB event log is the source of truth; the current-state record is a projection rebuilt by replay. Single authoritative write = the event append.
-- **Atomic updates**: current-state and command-status updates use a single guarded statement (`UPDATE … WHERE last_event_at < :incoming`), never read-then-write. Event idempotency enforced by a MongoDB unique index on a deterministic event id.
+- **Atomic updates**: the per-device state detail row is created **eagerly at device creation** (with defaults; `state_type`/`state_id` fixed then), so the report consumer only ever does a single guarded `UPDATE … WHERE last_event_at < :incoming` — never read-then-write, never a create in the hot path, no transaction.
+- **Idempotency**: the producer (worker/device) mints a `report_id` (uuid v7) per published message; `event_id := report_id`, enforced by a MongoDB unique index. Dedup is **message-identity** based (not effect-keyed), so redeliveries are dropped while genuinely distinct reports (incl. multi-step settles and future command-less readings) are all stored.
+- **Boot resilience**: env-var validation fails fast (config error), but transient MongoDB/RabbitMQ unavailability does **not** block `app.ready()` — connections retry in the background. Auth + CRUD stay available; only messaging-/Mongo-dependent endpoints degrade (`POST /commands` → 503 when the broker is down, event/state-from-Mongo reads → 503 when Mongo is down).
 - **Event immutability**: event history is append-only; events are never edited or deleted.
 - **DB naming**: snake_case columns/tables via Prisma `@map`/`@@map`, applied to new **and** existing (`User`, `RefreshToken`) models.
 - **Device state**: typed per device type via polymorphic morph (`state_type` + `state_id`) → per-type detail tables — no JSON column, single current facet.
@@ -91,6 +94,11 @@ The system always reflects the true current state of the house AND preserves a c
 | Event retention: no TTL in v1, retain all events | Events are the source of truth + AI corpus + state-rebuild source; archival deferred to v2 | — Pending |
 | Tests: testcontainers (MariaDB + MongoDB + RabbitMQ) for async integration; pure unit tests for infra-free logic | Faithful DLQ/idempotency/redelivery semantics; mocks give false confidence | — Pending |
 | Align existing tables to snake_case via `@@map` (`users`, `refresh_tokens`) — rename migration | Consistency; columns are already mapped, tables are not | — Pending |
+| Command target terminal state: success report → done; worker failure report → failed; timeout **reaper** (`deadline_at` + periodic sweep) ages silent targets → failed; command rolls up done/partially_failed/failed | Makes `partially_failed` reachable; without a reaper a lost effect leaves a target pending forever | — Pending |
+| Idempotency keyed on producer-minted `report_id` (uuid v7) = `event_id` | Message-identity dedupe generalizes to command-less reads and allows legitimate multi-report-per-command | — Pending |
+| Boot resilience: env validation fail-fast; broker/Mongo connect in background; auth/CRUD unaffected, dependent endpoints 503 | Don't regress shipped `/auth` availability for a messaging hiccup | — Pending |
+| State detail row created eagerly at device creation; consumer does a single guarded UPDATE | Removes create-or-update-without-transaction race | — Pending |
+| Autonomous sensor telemetry (periodic command-less readings) deferred to v2 | v1 is command/state; keeps scope bounded. Sensors are modeled but produce no autonomous data in v1 | — Pending |
 
 ### Open decisions
 

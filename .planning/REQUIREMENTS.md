@@ -33,7 +33,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 
 ### Device State (current state projection)
 
-- [ ] **STATE-01**: A device report updates that device's single current-state record (atomic guarded upsert; applied only if newer than the last event)
+- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; `state_type`/`state_id` fixed then); a device report updates it via a single atomic guarded `UPDATE … WHERE last_event_at < :incoming` (applied only if newer; no create in the hot path, no transaction)
 - [ ] **STATE-02**: User can read the current state of a single device they own
 - [ ] **STATE-03**: User can read current state for all devices in a room
 - [ ] **STATE-04**: User can read a full current-state snapshot of a house
@@ -44,19 +44,21 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **CMD-02**: The command handler resolves the selector to the user's owned device set (cross-tenant targets excluded)
 - [ ] **CMD-03**: An action invalid for a targeted device type is rejected with a validation error (400) before any dispatch
 - [ ] **CMD-04**: A command fans out to all resolved devices (best-effort); one command intent is recorded, linked to per-device effects; the command carries the desired intent + per-device status
-- [ ] **CMD-05**: User can query a command's status (`GET /commands/:id`), including per-device completion (pending / done / partially_failed)
+- [ ] **CMD-05**: User can query a command's status (`GET /commands/:id`), including per-device completion (pending / done / failed)
+- [ ] **CMD-06**: Command targets reach a terminal state: a success report → `done`; a worker failure report or a timeout **reaper** (target still `pending` past its `deadline_at`) → `failed`. The command status rolls up: all done → `done`, all failed → `failed`, mixed → `partially_failed`.
 
 ### Messaging (RabbitMQ)
 
-- [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology — effects exchange (outbound) and reports queue (inbound), with a dead-letter queue
+- [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology (topic effects + reports exchanges, queues, dead-letter exchange/queue, `prefetch=1`) and connects to MongoDB. Env-var validation fails fast, but transient broker/Mongo unavailability does NOT block startup (background reconnect); auth + CRUD stay available, while `POST /commands` returns 503 when the broker is down and event/state-from-Mongo reads return 503 when Mongo is down
 - [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
 - [ ] **MSG-03**: A simulated device worker consumes effects, applies them, and publishes a report back (stand-in for hardware)
 - [ ] **MSG-04**: A report consumer ingests reports (validating the `device_id` exists and is owned; `device_token` envelope field reserved, unenforced in v1), appends an event (MongoDB), and updates the device's current-state record (MariaDB)
-- [ ] **MSG-05**: Undeliverable effects and malformed/failed reports are retried and dead-lettered (DLQ)
+- [ ] **MSG-05**: Undeliverable effects and malformed/unparseable reports are retried and dead-lettered (DLQ)
+- [ ] **MSG-06**: The simulated worker publishes an explicit **failure report** when it receives a valid effect it cannot apply (distinct from malformed effects, which are nacked to the DLQ); the report consumer marks the target `failed`
 
 ### Event History (MongoDB)
 
-- [ ] **EVENT-01**: Every effect (command-originated) and report (device-originated) is recorded as an immutable event document in MongoDB (`source`, `event_kind`, `device_id`, `device_type`, `command_id`, snapshot, `recorded_at`)
+- [ ] **EVENT-01**: Every effect (command-originated) and report (device-originated) is recorded as an immutable event document in MongoDB (`event_id` = producer-minted `report_id` uuid v7, `source`, `event_kind`, `device_id`, `device_type`, `command_id` nullable, snapshot, `recorded_at`)
 - [ ] **EVENT-02**: A multi-device command produces one linked event per involved device (shared `command_id`)
 - [ ] **EVENT-03**: User can query a device's event history (ownership-scoped: owned device ids resolved in MariaDB first)
 - [ ] **EVENT-04**: User can filter event history by time range
@@ -68,7 +70,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models
 - [ ] **DATA-02**: `user_id` is denormalized onto Room and Device; ownership checks use it directly (no joins through the hierarchy)
 - [ ] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
-- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state and command-status writes use atomic guarded statements (not read-then-write); event idempotency via a MongoDB unique index on a deterministic event id
+- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state and command-status writes use atomic guarded statements (not read-then-write); event idempotency via a MongoDB unique index on `event_id` (= producer-minted `report_id`), i.e. message-identity dedupe
 
 ### Testing
 
@@ -98,6 +100,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 - **DEV-06**: Device presence tracking (`last_seen_at`)
 - **HOUSE-06**: Per-house timezone for history rendering
 - **STATE-05**: Typed-SQL filtering on state values (e.g. "all ACs above 25°") via a richer projection
+- **TELEM-01**: Autonomous sensor telemetry — a sensor simulator publishes periodic command-less readings (`command_id` null, `source` REPORT, `event_kind` READING) at a configurable cadence; the report consumer ingests command-less reports. (Deferred from v1.)
 
 ## Resolved Decisions (2026-06-29)
 
@@ -125,17 +128,64 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ## Traceability
 
-Which phases cover which requirements. **Stale — to be repopulated when the roadmap is regenerated after architecture changes.**
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (pending roadmap regeneration) | — | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| HOUSE-01 | Phase 2 | Pending |
+| HOUSE-02 | Phase 2 | Pending |
+| HOUSE-03 | Phase 2 | Pending |
+| HOUSE-04 | Phase 2 | Pending |
+| HOUSE-05 | Phase 2 | Pending |
+| ROOM-01 | Phase 2 | Pending |
+| ROOM-02 | Phase 2 | Pending |
+| ROOM-03 | Phase 2 | Pending |
+| ROOM-04 | Phase 2 | Pending |
+| DEV-01 | Phase 2 | Pending |
+| DEV-02 | Phase 2 | Pending |
+| DEV-03 | Phase 2 | Pending |
+| DEV-04 | Phase 2 | Pending |
+| DEV-05 | Phase 2 | Pending |
+| TEST-01 | Phase 2 | Pending |
+| TEST-05 | Phase 2 | Pending |
+| TEST-08 | Phase 2 | Pending |
+| MSG-01 | Phase 3 | Pending |
+| CMD-01 | Phase 4 | Pending |
+| CMD-02 | Phase 4 | Pending |
+| CMD-03 | Phase 4 | Pending |
+| CMD-04 | Phase 4 | Pending |
+| CMD-05 | Phase 4 | Pending |
+| MSG-02 | Phase 4 | Pending |
+| TEST-07 | Phase 4 | Pending |
+| MSG-03 | Phase 5 | Pending |
+| MSG-04 | Phase 6 | Pending |
+| MSG-05 | Phase 6 | Pending |
+| STATE-01 | Phase 6 | Pending |
+| STATE-02 | Phase 6 | Pending |
+| STATE-03 | Phase 6 | Pending |
+| STATE-04 | Phase 6 | Pending |
+| EVENT-01 | Phase 6 | Pending |
+| EVENT-02 | Phase 6 | Pending |
+| EVENT-06 | Phase 6 | Pending |
+| TEST-03 | Phase 6 | Pending |
+| TEST-04 | Phase 6 | Pending |
+| TEST-06 | Phase 6 | Pending |
+| TEST-09 | Phase 6 | Pending |
+| TEST-10 | Phase 6 | Pending |
+| EVENT-03 | Phase 7 | Pending |
+| EVENT-04 | Phase 7 | Pending |
+| EVENT-05 | Phase 7 | Pending |
+| TEST-12 | Phase 7 | Pending |
+| TEST-02 | Phase 8 | Pending |
+| TEST-11 | Phase 8 | Pending |
 
-**Coverage:**
-- v1 requirements: 45 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 5, MSG 5, EVENT 6, DATA 4, TEST 12)
-- Mapped to phases: 0 (pending roadmap regeneration)
-- Unmapped: 45 ⚠️
+**Coverage:** ⚠️ Stale — CMD-06 and MSG-06 added (gap-review round); pending roadmap regeneration.
+- v1 requirements: 47 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 6, MSG 6, EVENT 6, DATA 4, TEST 12)
+- Mapped to phases: pending regeneration
+- Unmapped: CMD-06, MSG-06 ⚠️
 
 ---
 *Requirements defined: 2026-06-25*
-*Last updated: 2026-06-28 after architecture discussion*
+*Last updated: 2026-06-29 — traceability repopulated after 8-phase roadmap regeneration*
