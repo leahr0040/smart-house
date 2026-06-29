@@ -33,7 +33,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 
 ### Device State (current state projection)
 
-- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; `state_type`/`state_id` fixed then); a device report updates it via a single atomic guarded `UPDATE … WHERE last_event_at < :incoming` (applied only if newer; no create in the hot path, no transaction)
+- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; `state_type`/`state_id` fixed then); a device report updates it via a single atomic guarded update applied only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)` (tuple tiebreaker so same-millisecond events aren't dropped; no create in the hot path, no transaction)
 - [ ] **STATE-02**: User can read the current state of a single device they own
 - [ ] **STATE-03**: User can read current state for all devices in a room
 - [ ] **STATE-04**: User can read a full current-state snapshot of a house
@@ -51,7 +51,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 
 - [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology (topic effects + reports exchanges, queues, dead-letter exchange/queue, `prefetch=1`) and connects to MongoDB. Env-var validation fails fast, but transient broker/Mongo unavailability does NOT block startup (background reconnect); auth + CRUD stay available, while `POST /commands` returns 503 when the broker is down and event/state-from-Mongo reads return 503 when Mongo is down
 - [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
-- [ ] **MSG-03**: A simulated device worker consumes effects, applies them, and publishes a report back (stand-in for hardware)
+- [ ] **MSG-03**: A simulated device worker — run as a separate process via `npm run worker` — consumes effects, applies them, and publishes a report back (stand-in for hardware). The API process owns/declares the RabbitMQ topology; the worker asserts it idempotently on boot.
 - [ ] **MSG-04**: A report consumer ingests reports (validating the `device_id` exists and is owned; `device_token` envelope field reserved, unenforced in v1), appends an event (MongoDB), and updates the device's current-state record (MariaDB)
 - [ ] **MSG-05**: Undeliverable effects and malformed/unparseable reports are retried and dead-lettered (DLQ)
 - [ ] **MSG-06**: The simulated worker publishes an explicit **failure report** when it receives a valid effect it cannot apply (distinct from malformed effects, which are nacked to the DLQ); the report consumer marks the target `failed`
@@ -67,10 +67,10 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 
 ### Data Conventions
 
-- [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models
+- [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models. (When renaming the existing tables, hand-verify the generated migration SQL emits `RENAME TABLE`, not drop+recreate — no data loss.)
 - [ ] **DATA-02**: `user_id` is denormalized onto Room and Device; ownership checks use it directly (no joins through the hierarchy)
 - [ ] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
-- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state and command-status writes use atomic guarded statements (not read-then-write); event idempotency via a MongoDB unique index on `event_id` (= producer-minted `report_id`), i.e. message-identity dedupe
+- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state and command-status writes use atomic guarded statements with a `(timestamp, event_id)` tuple tiebreaker (not read-then-write); event idempotency via a MongoDB unique index on `event_id` (= producer-minted `report_id`), i.e. message-identity dedupe
 
 ### Testing
 

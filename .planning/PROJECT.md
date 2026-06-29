@@ -63,7 +63,9 @@ The system always reflects the true current state of the house AND preserves a c
 - **Multi-tenancy**: All house/room/device/command/event data scoped to the owning user; no cross-tenant access. `user_id` is **denormalized onto Room and Device** so ownership checks never join through the hierarchy. History queries resolve owned device ids in MariaDB before querying MongoDB.
 - **No N+1**: multi-device paths use batched `IN` queries; ownership uses the denormalized `user_id`, never per-row joins.
 - **No DB transactions for state**: the MongoDB event log is the source of truth; the current-state record is a projection rebuilt by replay. Single authoritative write = the event append.
-- **Atomic updates**: the per-device state detail row is created **eagerly at device creation** (with defaults; `state_type`/`state_id` fixed then), so the report consumer only ever does a single guarded `UPDATE … WHERE last_event_at < :incoming` — never read-then-write, never a create in the hot path, no transaction.
+- **Atomic updates**: the per-device state detail row is created **eagerly at device creation** (with defaults; `state_type`/`state_id` fixed then), so the report consumer only ever does a single guarded update — never read-then-write, never a create in the hot path, no transaction. The guard is a **tuple compare** to avoid dropping same-millisecond events: apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)` (the row stores `last_event_id` too). Because `event_id` is uuid v7 (time-sortable), this is deterministic and order-independent — replay/reorder converges to the same state.
+- **Process model**: the simulated device worker runs as a separate process (`npm run worker`). The report consumer and the command-target reaper run as background tasks; their process placement (in-API vs separate) is decided at their phase. The **API process owns the RabbitMQ topology** (canonical declaration, single home for binding changes); other processes assert the same topology idempotently on boot but do not define new bindings.
+- **Throughput ceiling**: `prefetch=1` on the report consumer is a deliberate v1 ceiling (strictly serial processing). `// ponytail: prefetch=1, raise + per-device ordering key when volume matters.`
 - **Idempotency**: the producer (worker/device) mints a `report_id` (uuid v7) per published message; `event_id := report_id`, enforced by a MongoDB unique index. Dedup is **message-identity** based (not effect-keyed), so redeliveries are dropped while genuinely distinct reports (incl. multi-step settles and future command-less readings) are all stored.
 - **Boot resilience**: env-var validation fails fast (config error), but transient MongoDB/RabbitMQ unavailability does **not** block `app.ready()` — connections retry in the background. Auth + CRUD stay available; only messaging-/Mongo-dependent endpoints degrade (`POST /commands` → 503 when the broker is down, event/state-from-Mongo reads → 503 when Mongo is down).
 - **Event immutability**: event history is append-only; events are never edited or deleted.
@@ -111,6 +113,8 @@ Every phase plan must open with a **structure-first, test-first** sequence befor
 1. **Scaffold** — create the phase's files with real signatures, types, and properties; bodies are `// TODO:` only, no logic.
 2. **Tests** — write the phase's unit + integration tests (`node:test` + `build(t)` / `app.inject()`) covering its requirements; they compile and run red.
 3. **Implement** — fill in logic task-by-task until the tests pass.
+
+**Exception for schema/infra phases:** a phase with no runnable application logic (e.g. the schema phase) has nothing to run red. There, step 2 is honestly a **compile + migration smoke-check** (`prisma migrate dev` applies, `npm run build` compiles, existing tests still pass), not a failing test. Don't dress a compile check up as TDD-red.
 
 This is a hard rule for planning and execution — see Working Style in CLAUDE.md.
 
