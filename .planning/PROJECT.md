@@ -31,7 +31,7 @@ The system always reflects the true current state of the house AND preserves a c
 - [ ] First-class commands with selector-based targeting (device ids / room / house + optional type) and multi-device fan-out; desired intent + status live on the command
 - [ ] Illogical command (action invalid for a device type) is rejected with a validation error before dispatch
 - [ ] Event-driven dispatch over RabbitMQ: effects out, reports in; simulated device worker stands in for hardware
-- [ ] Immutable event history in MongoDB as the source of truth (no DB transactions)
+- [ ] Immutable event history in a MariaDB append-only table as the source of truth (single store; the consumer's event-append + state-update + target-update are one local transaction)
 - [ ] Query current state (device/room/house) and event history (by device, time range, cursor paginated)
 
 ### Out of Scope
@@ -45,6 +45,7 @@ The system always reflects the true current state of the house AND preserves a c
 - OAuth / social login — email/password auth is sufficient for v1
 - Typed-SQL filtering on state values (e.g. "all ACs above 25°") — not a v1 read pattern; add a richer projection later if needed (rebuildable from events)
 - Autonomous sensor telemetry (periodic command-less sensor readings) — deferred to v2; v1 sensors are modeled and report-only but emit no autonomous data, so all v1 reports are command-driven
+- Separate datastore for events (MongoDB / dedicated time-series DB) — the MariaDB append-only event log suffices for v1; re-extract to a time-series store in a future phase only if write volume demands it (rebuilt from the log)
 
 ## Context
 
@@ -52,25 +53,30 @@ The system always reflects the true current state of the house AND preserves a c
 - **Auth token strategy is settled:** 15-min JWT access tokens + 7-day rotating opaque refresh tokens (SHA-256 hashed, single-use, httpOnly cookie scoped to `/auth`).
 - **Validation standard is TypeBox** (per CLAUDE.md / PLAN.md rule 1.5). New schemas use TypeBox with `Static<typeof schema>`. Per-device-type state and command actions are validated with TypeBox at the command/report boundary.
 - **Service-layer pattern:** routes call pure service functions in `src/services/`; services call the Prisma singleton from `src/lib/prisma.ts`.
-- **Event-driven core:** A **Command Handler** resolves a selector to owned devices, validates the action per device type, translates it into per-device effects, and publishes them to RabbitMQ. A **simulated device worker** applies effects and publishes reports. A **report consumer** appends the event (MongoDB) and updates the device's single current-state record (MariaDB). This models real hardware (assumed present) where state is confirmed asynchronously.
-- **Three data stores:** MariaDB (relational: auth, houses, rooms, devices, current-state projection, commands), MongoDB (append-only event history / time-series, source of truth), RabbitMQ (effect dispatch + report ingestion).
-- **Future AI consumer** shapes the design: events are uniform documents linked to the command intent that caused them, so an AI component can later mine "intent → effects" causality without a schema rewrite.
+- **Event-driven core:** A **Command Handler** resolves a selector to owned devices, validates the action per device type, translates it into per-device effects, and publishes them to RabbitMQ. A **simulated device worker** applies effects and publishes reports. A **report consumer** appends the event, updates the device's single current-state record, and updates the command-target status — **all in one MariaDB transaction**. This models real hardware (assumed present) where state is confirmed asynchronously.
+- **Two data stores:** MariaDB (relational + the append-only **event log** which is the source of truth + current-state projection + commands), RabbitMQ (effect dispatch + report ingestion). *(A dedicated time-series store for events is a future option, re-extractable from the MariaDB log — not v1.)*
+- **Future AI consumer** shapes the design: events are uniform rows linked to the command intent that caused them, so an AI component can later mine "intent → effects" causality without a schema rewrite.
 
 ## Constraints
 
-- **Tech stack**: Extend the existing Fastify 5 + Prisma + MariaDB app, not replace it. Add MongoDB (events) and RabbitMQ (messaging).
+- **Tech stack**: Extend the existing Fastify 5 + Prisma + MariaDB app, not replace it. Add RabbitMQ (messaging); events live in a new MariaDB append-only table — no second datastore.
 - **Validation**: New routes/schemas/actions must use TypeBox (project standard).
-- **Multi-tenancy**: All house/room/device/command/event data scoped to the owning user; no cross-tenant access. `user_id` is **denormalized onto Room and Device** so ownership checks never join through the hierarchy. History queries resolve owned device ids in MariaDB before querying MongoDB.
+- **Multi-tenancy**: All house/room/device/command/event data scoped to the owning user; no cross-tenant access. `user_id` is **denormalized onto Room and Device** so ownership checks never join through the hierarchy. Event-history reads are ownership-scoped in MariaDB; the history of a **soft-deleted** device you own remains readable (deletion hides it from listings, not from history).
 - **No N+1**: multi-device paths use batched `IN` queries; ownership uses the denormalized `user_id`, never per-row joins.
-- **Consistency model** (transactions are scoped, not banned):
-  - *Cross-store* (Mongo event ↔ MariaDB projection): **no transaction** (impossible across two stores). The Mongo event log is the source of truth; the current-state record is a projection rebuilt by replay; write-order = event first.
-  - *Idempotency & ordering*: the **guarded "update when match"** (a single atomic `UPDATE … WHERE (last_event_at,last_event_id) < (…)`) + the Mongo `event_id` unique index. **A transaction is never a substitute for idempotency** — it does not dedupe at-least-once delivery.
-  - *Intra-MariaDB multi-row atomicity*: **use a transaction** where several rows must change together — device + its eager state row, command + its `command_targets`, target-status + command roll-up (consumer and reaper).
-- **Atomic updates**: the per-device state detail row is created **eagerly at device creation** (with defaults; `state_type`/`state_id` fixed then), so the report consumer only ever does a single guarded update — never read-then-write, never a create in the hot path, no transaction. The guard is a **tuple compare** to avoid dropping same-millisecond events: apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)` (the row stores `last_event_id` too). Because `event_id` is uuid v7 (time-sortable), this is deterministic and order-independent — replay/reorder converges to the same state.
+- **Consistency model** (single store — transactions do the heavy lifting):
+  - The MariaDB **event log is the source of truth**; the current-state row is a projection rebuildable from it. Everything is in one database, so there is **no cross-store window** and no write-order invariant.
+  - *Consumer atomicity*: per report, in **one MariaDB transaction** — insert the event, guarded-update the current-state row, CAS the `command_target` status, recompute the command roll-up. Commit, then ack. A crash before commit → redelivery → the same transaction re-runs idempotently.
+  - *Idempotency*: the **`event_id` unique index** (MariaDB). A duplicate insert ⇒ the transaction is a no-op and the message is acked. A transaction is **never** a substitute for idempotency.
+  - *Ordering*: the state-row update is **guarded "update when match"** — a tuple compare so same-millisecond and out-of-order reports are handled: apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)` (the row stores `last_event_id`; `event_id` is uuid v7, so this is deterministic and order-independent). The event row is still recorded even when a stale report doesn't move current state.
+  - *Target transitions*: **compare-and-set**, `pending → done|failed` only, never overwriting a terminal state. **First terminal wins** — a success report arriving after the reaper marked a target `failed` is still recorded as an event but does not flip the status.
+- **State row lifecycle**: the per-device state detail row is created **eagerly at device creation** (defaults; `state_type`/`state_id` fixed then), so the consumer's hot path is only ever a guarded `UPDATE` — never a create.
 - **Process model**: the simulated device worker runs as a separate process (`npm run worker`). The report consumer and the command-target reaper run as background tasks; their process placement (in-API vs separate) is decided at their phase. The **API process owns the RabbitMQ topology** (canonical declaration, single home for binding changes); other processes assert the same topology idempotently on boot but do not define new bindings.
 - **Throughput ceiling**: `prefetch=1` on the report consumer is a deliberate v1 ceiling (strictly serial processing). `// ponytail: prefetch=1, raise + per-device ordering key when volume matters.`
-- **Idempotency**: the producer (worker/device) mints a `report_id` (uuid v7) per published message; `event_id := report_id`, enforced by a MongoDB unique index. Dedup is **message-identity** based (not effect-keyed), so redeliveries are dropped while genuinely distinct reports (incl. multi-step settles and future command-less readings) are all stored.
-- **Boot resilience**: env-var validation fails fast (config error), but transient MongoDB/RabbitMQ unavailability does **not** block `app.ready()` — connections retry in the background. Auth + CRUD stay available; only messaging-/Mongo-dependent endpoints degrade (`POST /commands` → 503 when the broker is down, event/state-from-Mongo reads → 503 when Mongo is down).
+- **Idempotency**: the producer (worker/device) mints a `report_id` (uuid v7) per published message; `event_id := report_id`, enforced by a MariaDB unique index. Dedup is **message-identity** based (not effect-keyed), so redeliveries are dropped while genuinely distinct reports (incl. multi-step settles and future command-less readings) are all stored.
+- **Fan-out cap**: a selector resolving to more than a configurable max (default ~200) targets is rejected (400). `// ponytail: fan-out cap, page or raise when a real client needs bigger batches.`
+- **Command create ordering**: persist Command + `command_targets` (one transaction, committed) **then** publish effects. Never publish first (avoids reports for an uncommitted command); a crash after commit before publish leaves targets `pending` → the reaper self-heals them to `failed`.
+- **DLQ**: poison effects and unknown-`device_id` reports are dead-lettered. v1 does **not** drain or alert the DLQ — manual inspection only. `// ponytail: DLQ drain + alert when ops maturity needs it.`
+- **Boot resilience**: env-var validation fails fast (config error), but transient RabbitMQ unavailability does **not** block `app.ready()` — the connection retries in the background. Auth + CRUD + state/event reads (all MariaDB) stay available; only `POST /commands` degrades to **503** while the broker is down.
 - **Event immutability**: event history is append-only; events are never edited or deleted.
 - **DB naming**: snake_case columns/tables via Prisma `@map`/`@@map`, applied to new **and** existing (`User`, `RefreshToken`) models.
 - **Device state**: typed per device type via polymorphic morph (`state_type` + `state_id`) → per-type detail tables — no JSON column, single current facet.
@@ -81,13 +87,18 @@ The system always reflects the true current state of the house AND preserves a c
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Event-driven over RabbitMQ; assume hardware exists | Builds v2-ready infrastructure; real devices confirm state asynchronously | — Pending |
-| MongoDB event log is source of truth; current state is a projection; no *cross-store* transaction (intra-MariaDB transactions allowed where multiple rows must change together) | Avoids dual-write atomicity problem; supports replay/self-heal; transactions stay for true intra-store multi-row atomicity, never as an idempotency substitute | — Pending |
-| Event history in MongoDB (time-series collections) | Append-only telemetry; flexible documents | — Pending |
+| **Single-store MariaDB** event log (dropped MongoDB) — event log is source of truth; current state is a projection rebuilt from it | Mongo created the dual-store consistency tax (the top runtime risk) and hit a hard contradiction (time-series collections can't carry the `event_id` unique index our idempotency needs); a MariaDB append-only table gives source-of-truth log + idempotency + replay + cursor pagination, and the consumer's writes become one local transaction. AI-corpus/time-series benefits were speculative v2 | — Pending |
+| Consumer pipeline is one MariaDB transaction (event insert + guarded state update + CAS target + roll-up) | Single store → atomic, no write-order invariant, no cross-store window | — Pending |
+| Target transitions are compare-and-set (`pending → done|failed`, terminal); first terminal wins | Closes the reaper-vs-consumer race; late success after a reaper-timeout is logged as an event but doesn't flip a terminal status | — Pending |
+| Command create: persist command+targets (tx) then publish effects | Avoids reports for an uncommitted command; reaper self-heals unpublished targets | — Pending |
+| Fan-out cap (default ~200 targets), reject over cap | Prevents one selector from spawning unbounded targets/effects/events | — Pending |
+| DLQ not drained/alerted in v1 (manual inspection) | Deliberate v1 deferral, not silent loss | — Pending |
+| Event history of a soft-deleted device (you own) stays readable | Deletion hides from listings, not from history/telemetry | — Pending |
 | Single current-state projection per device (no desired/reported twin) | The event log holds history; the command holds intent; only the real current state needs a fast record | — Pending |
 | Typed per-device-type state via polymorphic morph (`state_type` + `state_id`) | Flexible (new type = new detail table, no Device change); typed detail; loose FK integrity acceptable since state is a rebuildable projection | — Pending |
 | `user_id` denormalized on Room and Device | Ownership checks without joins; eliminates N+1 | — Pending |
 | Soft delete (`deleted_at`) on User/House/Room/Device | Retain records; filter everywhere; soft-deleted user can't authenticate | — Pending |
-| Atomic guarded updates (single conditional UPDATE); idempotency via unique index | Prevents out-of-order/duplicate corruption without transactions | — Pending |
+| Guarded "update when match" for ordering + `event_id` unique index for idempotency | Prevents out-of-order/duplicate corruption; transaction provides atomicity, guard+index provide ordering+dedupe | — Pending |
 | First-class `command` entity + selector targeting + best-effort fan-out | Supports bulk commands ("all lights off"); links intent → effects for AI; carries desired/pending | — Pending |
 | Illogical action ⇒ 400 (validate at handler before dispatch) | Fail fast; don't dispatch nonsense to devices | — Pending |
 | Reports flow in via RabbitMQ only (no REST report endpoint) | Exercises the exact event-driven path real hardware uses in v2 | — Pending |
@@ -97,7 +108,7 @@ The system always reflects the true current state of the house AND preserves a c
 | Device report trust: validate device_id exists/owned in v1; reserve a `device_token` envelope field for v2 per-device secrets | Only our worker publishes in v1; non-breaking path to real hardware auth | — Pending |
 | RabbitMQ: topic exchanges (effects/reports) + dead-letter exchange/queue, `prefetch=1` | Future per-device/type/room routing at no extra cost; bounded redelivery | — Pending |
 | Event retention: no TTL in v1, retain all events | Events are the source of truth + AI corpus + state-rebuild source; archival deferred to v2 | — Pending |
-| Tests: testcontainers (MariaDB + MongoDB + RabbitMQ) for async integration; pure unit tests for infra-free logic | Faithful DLQ/idempotency/redelivery semantics; mocks give false confidence | — Pending |
+| Tests: testcontainers (MariaDB + RabbitMQ — 2 containers, shared suite-level fixture) for async integration; pure unit tests for infra-free logic | Faithful DLQ/idempotency/redelivery semantics; mocks give false confidence; suite-level reuse keeps it tolerable on Windows/Docker Desktop | — Pending |
 | Align existing tables to snake_case via `@@map` (`users`, `refresh_tokens`) — rename migration | Consistency; columns are already mapped, tables are not | — Pending |
 | Command target terminal state: success report → done; worker failure report → failed; timeout **reaper** (`deadline_at` + periodic sweep) ages silent targets → failed; command rolls up done/partially_failed/failed | Makes `partially_failed` reachable; without a reaper a lost effect leaves a target pending forever | — Pending |
 | Idempotency keyed on producer-minted `report_id` (uuid v7) = `event_id` | Message-identity dedupe generalizes to command-less reads and allows legitimate multi-report-per-command | — Pending |
@@ -139,4 +150,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-28 after architecture discussion (event-driven; single current-state projection via morph; user_id denormalization; soft-delete everywhere)*
+*Last updated: 2026-06-30 — collapsed to single-store MariaDB (dropped MongoDB); consumer pipeline is one transaction; CAS target transitions (first-terminal-wins); fan-out cap; persist-then-publish; DLQ-no-drain; soft-deleted history readable*

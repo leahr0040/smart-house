@@ -5,6 +5,8 @@
 **Replaces:** SUMMARY.md dated 2026-06-25 (pre-architecture-pivot)
 **Overall confidence:** HIGH
 
+> **⚠ 2026-06-30 UPDATE (c) — single-store pivot, supersedes all MongoDB references below.** Events now live in a **MariaDB append-only `events` table**, not MongoDB. MongoDB and the `mongodb` driver are DROPPED. Consequences: the report consumer's event-insert + guarded state-update + target CAS + roll-up are **one local MariaDB transaction** (no cross-store window, no write-order invariant); idempotency = MariaDB unique index on `event_id`; event history is queried from MariaDB; testcontainers spins up **MariaDB + RabbitMQ only (2 containers)**. Also added: command targets use compare-and-set with **first-terminal-wins**, command create is **persist-then-publish**, a **fan-out cap** (~200), the **DLQ is not drained in v1**, and a soft-deleted device's history stays readable. The RabbitMQ/event-driven design is otherwise unchanged. PROJECT.md / REQUIREMENTS.md are authoritative.
+>
 > **⚠ 2026-06-28 UPDATE (b) — supersedes parts of this summary.** The data model was refined after this was synthesized. Where this conflicts with the points below, the points below win (PROJECT.md / REQUIREMENTS.md are authoritative).
 >
 > - **No desired/reported twin.** Each device has a SINGLE current-state record (its real state), updated on report. "Desired"/pending lives on the `commands` table. All `desired_*` / `reported_*` columns and `sync_status` are removed.

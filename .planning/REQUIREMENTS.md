@@ -33,7 +33,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 
 ### Device State (current state projection)
 
-- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; `state_type`/`state_id` fixed then); a device report updates it via a single atomic guarded update applied only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)` (tuple tiebreaker so same-millisecond events aren't dropped; no create in the hot path, no transaction)
+- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; `state_type`/`state_id` fixed then); a device report guarded-updates it (apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)` — tuple tiebreaker, no create in the hot path) as part of the consumer's single MariaDB transaction (event insert + this update + target CAS + roll-up)
 - [ ] **STATE-02**: User can read the current state of a single device they own
 - [ ] **STATE-03**: User can read current state for all devices in a room
 - [ ] **STATE-04**: User can read a full current-state snapshot of a house
@@ -45,36 +45,37 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **CMD-03**: An action invalid for a targeted device type is rejected with a validation error (400) before any dispatch
 - [ ] **CMD-04**: A command fans out to all resolved devices (best-effort); one command intent is recorded, linked to per-device effects; the command carries the desired intent + per-device status
 - [ ] **CMD-05**: User can query a command's status (`GET /commands/:id`), including per-device completion (pending / done / failed)
-- [ ] **CMD-06**: Command targets reach a terminal state: a success report → `done`; a worker failure report or a timeout **reaper** (target still `pending` past its `deadline_at`) → `failed`. The command status rolls up: all done → `done`, all failed → `failed`, mixed → `partially_failed`.
+- [ ] **CMD-06**: Command targets reach a terminal state via **compare-and-set** (`pending → done|failed` only, never overwriting a terminal state): a success report → `done`; a worker failure report or a timeout **reaper** (target still `pending` past its `deadline_at`) → `failed`. **First terminal wins** — a late success after a reaper-`failed` is recorded as an event but does not flip the status. The command rolls up: all done → `done`, all failed → `failed`, mixed → `partially_failed`.
+- [ ] **CMD-07**: Command creation persists the command + `command_targets` (one transaction) **before** publishing effects (never publish-first). A selector resolving to more than a configurable max (default ~200) targets is rejected with 400.
 
 ### Messaging (RabbitMQ)
 
-- [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology (topic effects + reports exchanges, queues, dead-letter exchange/queue, `prefetch=1`) and connects to MongoDB. Env-var validation fails fast, but transient broker/Mongo unavailability does NOT block startup (background reconnect); auth + CRUD stay available, while `POST /commands` returns 503 when the broker is down and event/state-from-Mongo reads return 503 when Mongo is down
+- [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology (topic effects + reports exchanges, queues, dead-letter exchange/queue, `prefetch=1`). Env-var validation fails fast, but transient broker unavailability does NOT block startup (background reconnect); auth + CRUD + state/event reads (all MariaDB) stay available, while `POST /commands` returns 503 while the broker is down
 - [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
 - [ ] **MSG-03**: A simulated device worker — run as a separate process via `npm run worker` — consumes effects, applies them, and publishes a report back (stand-in for hardware). The API process owns/declares the RabbitMQ topology; the worker asserts it idempotently on boot.
-- [ ] **MSG-04**: A report consumer ingests reports (validating the `device_id` exists and is owned; `device_token` envelope field reserved, unenforced in v1), appends an event (MongoDB), and updates the device's current-state record (MariaDB)
-- [ ] **MSG-05**: Undeliverable effects and malformed/unparseable reports are retried and dead-lettered (DLQ)
+- [ ] **MSG-04**: A report consumer ingests reports (validating the `device_id` exists and is owned; `device_token` envelope field reserved, unenforced in v1), and in **one MariaDB transaction** appends the event row, guarded-updates the current-state row, CAS-updates the command target, and recomputes the command roll-up
+- [ ] **MSG-05**: Undeliverable effects and malformed/unparseable/unknown-`device_id` reports are dead-lettered (DLQ). v1 does **not** drain or alert the DLQ — manual inspection only (`// ponytail: DLQ drain + alert later`)
 - [ ] **MSG-06**: The simulated worker publishes an explicit **failure report** when it receives a valid effect it cannot apply (distinct from malformed effects, which are nacked to the DLQ); the report consumer marks the target `failed`
 
 ### Event History (MongoDB)
 
-- [ ] **EVENT-01**: Every effect (command-originated) and report (device-originated) is recorded as an immutable event document in MongoDB (`event_id` = producer-minted `report_id` uuid v7, `source`, `event_kind`, `device_id`, `device_type`, `command_id` nullable, snapshot, `recorded_at`)
+- [ ] **EVENT-01**: Every effect (command-originated) and report (device-originated) is recorded as an immutable row in a MariaDB append-only `events` table (`event_id` = producer-minted `report_id` uuid v7 with a **unique index**, `source`, `event_kind`, `device_id`, `device_type`, `command_id` nullable, snapshot, `recorded_at`; index on `(device_id, recorded_at)`)
 - [ ] **EVENT-02**: A multi-device command produces one linked event per involved device (shared `command_id`)
-- [ ] **EVENT-03**: User can query a device's event history (ownership-scoped: owned device ids resolved in MariaDB first)
+- [ ] **EVENT-03**: User can query a device's event history (ownership-scoped; the history of a soft-deleted device the user owns remains readable)
 - [ ] **EVENT-04**: User can filter event history by time range
 - [ ] **EVENT-05**: Event history queries use cursor pagination
-- [ ] **EVENT-06**: The event log is the source of truth; the current-state projection can be rebuilt by replay (no DB transactions)
+- [ ] **EVENT-06**: The MariaDB `events` table is the source of truth; the current-state projection can be rebuilt by replaying events
 
 ### Data Conventions
 
 - [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models. (When renaming the existing tables, hand-verify the generated migration SQL emits `RENAME TABLE`, not drop+recreate — no data loss.)
 - [ ] **DATA-02**: `user_id` is denormalized onto Room and Device; ownership checks use it directly (no joins through the hierarchy)
 - [ ] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
-- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state writes use a single atomic tuple-guarded `UPDATE … WHERE (last_event_at, last_event_id) < (:recorded_at, :event_id)` (stores `last_event_id` on the state row; uuid v7 makes this deterministic); event idempotency via a MongoDB unique index on `event_id` (= producer-minted `report_id`), i.e. message-identity dedupe. Transactions are scoped: **no cross-store transaction**, and a transaction is **never** a substitute for the idempotency guard — but **intra-MariaDB transactions are used** where multiple rows must change together (device + eager state row; command + `command_targets`; target-status + command roll-up).
+- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state writes use a tuple-guarded `UPDATE … WHERE (last_event_at, last_event_id) < (:recorded_at, :event_id)` (stores `last_event_id`; uuid v7 makes this deterministic); event idempotency via a **MariaDB unique index on `event_id`** (= producer-minted `report_id`), message-identity dedupe; target transitions are compare-and-set. The report consumer runs these as **one MariaDB transaction** (single store); a transaction is **never** a substitute for the idempotency guard.
 
 ### Testing
 
-Tests use the existing convention: Node's built-in runner (`node:test` + `node:assert`), the `build(t)` helper that spins up a full Fastify instance, and `app.inject()` (no real HTTP). Tests run against compiled `dist/`. Async integration tests use **testcontainers** to spin up real MariaDB + MongoDB + RabbitMQ; infra-free logic (validators, selector resolution, translator) uses pure unit tests. Each phase ships its own tests; the items below are the cross-cutting guarantees.
+Tests use the existing convention: Node's built-in runner (`node:test` + `node:assert`), the `build(t)` helper that spins up a full Fastify instance, and `app.inject()` (no real HTTP). Tests run against compiled `dist/`. Async integration tests use **testcontainers** to spin up real MariaDB + RabbitMQ (2 containers, started once via a **shared suite-level fixture** — not per-file — to stay tolerable on Windows/Docker Desktop); infra-free logic (validators, selector resolution, translator) uses pure unit tests. Each phase ships its own tests; the items below are the cross-cutting guarantees.
 
 - [ ] **TEST-01**: Every ownership-scoped endpoint has a multi-tenancy test — a second user gets 404 for resources they don't own
 - [ ] **TEST-02**: Command→event round-trip test — issuing a command produces effects, the simulated worker reports, an event is appended (MongoDB), and the device's current state is updated
@@ -110,7 +111,8 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | Entity PK type | **uuid v7** for new entities (House/Room/Device/Command); User/RefreshToken stay Int | Houses phase (first entity) |
 | RabbitMQ topology | **Topic** exchanges (effects/reports) + dead-letter exchange/queue; `prefetch=1` on consumers | MSG-01 |
 | Event retention | **No TTL in v1** — retain all events; archival deferred | EVENT-07 (v2) |
-| Test infrastructure | **Testcontainers** (MariaDB + MongoDB + RabbitMQ) for async integration tests; pure unit tests for infra-free logic | TEST-02..06 |
+| **Event store** | **Single-store MariaDB** append-only `events` table (dropped MongoDB) — resolves the dual-store consistency tax and the time-series/unique-index contradiction; consumer writes become one local transaction | EVENT-*, MSG-04, STATE-01, DATA-04, Phase 1/3/6 |
+| Test infrastructure | **Testcontainers** (MariaDB + RabbitMQ, shared suite-level fixture) for async integration tests; pure unit tests for infra-free logic | TEST-02..06 |
 | Existing table names | Align `User`/`RefreshToken` to `users`/`refresh_tokens` via `@@map` (rename migration); columns already mapped | DATA-01 |
 | Idempotency key | Producer-minted `report_id` (uuid v7) = `event_id`; message-identity dedupe | DATA-04, EVENT-01 |
 | Tuple guard columns | State detail rows store `last_event_at` AND `last_event_id`; guard is tuple compare, not strictly-less-than timestamp | DATA-04, STATE-01 |
@@ -132,8 +134,11 @@ Explicitly excluded. Documented to prevent scope creep.
 | WebSocket / SSE live push to clients | Clients poll REST for v1 |
 | OAuth / social login | Email/password auth already shipped and sufficient |
 | Desired/reported twin state per device | Desired intent lives on the command; only the real current state is projected |
+| Separate datastore for events (MongoDB / time-series DB) | MariaDB append-only `events` table suffices for v1; re-extract to a time-series store in a future phase if write volume demands it (rebuilt from the log) |
 
 ## Traceability
+
+⚠️ **Stale** — dropped MongoDB (single-store MariaDB) and added CMD-07; pending roadmap regeneration.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
