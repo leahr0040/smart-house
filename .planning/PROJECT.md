@@ -46,6 +46,7 @@ The system always reflects the true current state of the house AND preserves a c
 - Typed-SQL filtering on state values (e.g. "all ACs above 25°") — not a v1 read pattern; add a richer projection later if needed (rebuildable from events)
 - Autonomous sensor telemetry (periodic command-less sensor readings) — deferred to v2; v1 sensors are modeled and report-only but emit no autonomous data, so all v1 reports are command-driven
 - Separate datastore for events (MongoDB / dedicated time-series DB) — the MariaDB append-only event log suffices for v1; re-extract to a time-series store in a future phase only if write volume demands it (rebuilt from the log)
+- Redis / external cache — no measured bottleneck in v1 (current state is single indexed rows; ownership is an indexed query; idempotency is a unique index). Add only when a profiled hot path, real-time fan-out, or distributed rate-limiting actually needs it
 
 ## Context
 
@@ -53,7 +54,8 @@ The system always reflects the true current state of the house AND preserves a c
 - **Auth token strategy is settled:** 15-min JWT access tokens + 7-day rotating opaque refresh tokens (SHA-256 hashed, single-use, httpOnly cookie scoped to `/auth`).
 - **Validation standard is TypeBox** (per CLAUDE.md / PLAN.md rule 1.5). New schemas use TypeBox with `Static<typeof schema>`. Per-device-type state and command actions are validated with TypeBox at the command/report boundary.
 - **Service-layer pattern:** routes call pure service functions in `src/services/`; services call the Prisma singleton from `src/lib/prisma.ts`.
-- **Event-driven core:** A **Command Handler** resolves a selector to owned devices, validates the action per device type, translates it into per-device effects, and publishes them to RabbitMQ. A **simulated device worker** applies effects and publishes reports. A **report consumer** appends the event, updates the device's single current-state record, and updates the command-target status — **all in one MariaDB transaction**. This models real hardware (assumed present) where state is confirmed asynchronously.
+- **Event-driven core:** A **Command Handler** does minimal **acceptance** validation, resolves the selector to owned devices, persists the command (`received`) + `command_targets` (one transaction), runs a lightweight synchronous **type-level** action check, then publishes per-device effects to RabbitMQ. **Deep per-type ("sub-type") business validation runs asynchronously** in the worker/consumer path — its failures become state transitions + failure reports + (where needed) compensating actions, never a synchronous rejection of an already-accepted command. A **simulated device worker** applies effects and publishes reports. A **report consumer** appends the event, guarded-updates the current-state record, CAS-updates the command-target, and recomputes the roll-up — **all in one MariaDB transaction**.
+- **Layered validation:** (1) **Acceptance** (sync, pre-persist): shape/types/format/required + selector well-formed → 400, nothing created. (2) **Type-level** (sync, post-persist): "does this action apply to this device *type*" (e.g. temperature on a light) → command transitions to `rejected`. (3) **Sub-type business** (async, event-driven): value ranges, cross-entity, DB/external lookups → handled via state transitions/events/compensating actions, not by rejecting the request.
 - **Two data stores:** MariaDB (relational + the append-only **event log** which is the source of truth + current-state projection + commands), RabbitMQ (effect dispatch + report ingestion). *(A dedicated time-series store for events is a future option, re-extractable from the MariaDB log — not v1.)*
 - **Future AI consumer** shapes the design: events are uniform rows linked to the command intent that caused them, so an AI component can later mine "intent → effects" causality without a schema rewrite.
 
@@ -75,7 +77,12 @@ The system always reflects the true current state of the house AND preserves a c
 - **Idempotency**: the producer (worker/device) mints a `report_id` (uuid v7) per published message; `event_id := report_id`, enforced by a MariaDB unique index. Dedup is **message-identity** based (not effect-keyed), so redeliveries are dropped while genuinely distinct reports (incl. multi-step settles and future command-less readings) are all stored.
 - **Fan-out cap**: a selector resolving to more than a configurable max (default ~200) targets is rejected (400). `// ponytail: fan-out cap, page or raise when a real client needs bigger batches.`
 - **Command create ordering**: persist Command + `command_targets` (one transaction, committed) **then** publish effects. Never publish first (avoids reports for an uncommitted command); a crash after commit before publish leaves targets `pending` → the reaper self-heals them to `failed`.
-- **DLQ**: poison effects and unknown-`device_id` reports are dead-lettered. v1 does **not** drain or alert the DLQ — manual inspection only. `// ponytail: DLQ drain + alert when ops maturity needs it.`
+- **Failure taxonomy** (DLQ is for infra failures, not domain ones):
+  - *Poison* (malformed/unparseable/unknown message) → **DLQ**, no retry.
+  - *Transient* (temporary unavailability/timeout) → bounded retry (`x-death` count) → DLQ after N.
+  - *Domain rejection* (a valid effect the device / async sub-type validation legitimately can't satisfy) → **failure report → target `failed`, message acked** — NOT dead-lettered (it's a normal outcome).
+  - v1 does **not** drain or alert the DLQ — manual inspection only. `// ponytail: DLQ drain + alert when ops maturity needs it.`
+- **Command-lifecycle events**: command milestones (`command.received`, `command.resolved`, `command.rejected`, `command.completed`) are written to the `events` table (`entity_type` = command, `device_id` null), alongside the per-device effect/report events — a complete intent→outcome timeline for audit and the future AI.
 - **Boot resilience**: env-var validation fails fast (config error), but transient RabbitMQ unavailability does **not** block `app.ready()` — the connection retries in the background. Auth + CRUD + state/event reads (all MariaDB) stay available; only `POST /commands` degrades to **503** while the broker is down.
 - **Event immutability**: event history is append-only; events are never edited or deleted.
 - **DB naming**: snake_case columns/tables via Prisma `@map`/`@@map`, applied to new **and** existing (`User`, `RefreshToken`) models.
@@ -100,7 +107,10 @@ The system always reflects the true current state of the house AND preserves a c
 | Soft delete (`deleted_at`) on User/House/Room/Device | Retain records; filter everywhere; soft-deleted user can't authenticate | — Pending |
 | Guarded "update when match" for ordering + `event_id` unique index for idempotency | Prevents out-of-order/duplicate corruption; transaction provides atomicity, guard+index provide ordering+dedupe | — Pending |
 | First-class `command` entity + selector targeting + best-effort fan-out | Supports bulk commands ("all lights off"); links intent → effects for AI; carries desired/pending | — Pending |
-| Illogical action ⇒ 400 (validate at handler before dispatch) | Fail fast; don't dispatch nonsense to devices | — Pending |
+| Layered validation: acceptance (sync 400) → type-level (sync, → rejected) → sub-type business (async, state transitions) | Fast request acceptance; deep rules don't block the request; gross mistakes still fail fast | — Pending |
+| Failure taxonomy: poison → DLQ; transient → retry → DLQ; domain rejection → failure report (acked, not DLQ) | DLQ is for messages the system couldn't process, not for legitimate device "no" | — Pending |
+| Command-lifecycle events (received/resolved/rejected/completed) in the events table (`entity_type=command`) | Complete intent→outcome timeline for audit + future AI; cheap | — Pending |
+| No Redis in v1 | No measured bottleneck; avoids re-introducing the unjustified-second-store tax just removed with Mongo | — Pending |
 | Reports flow in via RabbitMQ only (no REST report endpoint) | Exercises the exact event-driven path real hardware uses in v2 | — Pending |
 | snake_case via `@map`/`@@map`, including existing models | Consistent DB convention across the schema | — Pending |
 | Multi-tenant from day one; API-only v1; AI deferred | Existing auth supports many users; ship the platform first | — Pending |
@@ -150,4 +160,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-30 — collapsed to single-store MariaDB (dropped MongoDB); consumer pipeline is one transaction; CAS target transitions (first-terminal-wins); fan-out cap; persist-then-publish; DLQ-no-drain; soft-deleted history readable*
+*Last updated: 2026-06-30 — single-store MariaDB; one-transaction consumer; CAS first-terminal-wins; fan-out cap; persist-then-publish; layered validation (acceptance/type sync, sub-type async); 3-way failure taxonomy; command-lifecycle timeline events; no Redis*
