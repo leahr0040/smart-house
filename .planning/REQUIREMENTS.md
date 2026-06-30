@@ -1,7 +1,7 @@
 # Requirements: Smart House
 
 **Defined:** 2026-06-25
-**Updated:** 2026-06-28 (single current-state projection via morph; user_id denorm; soft-delete everywhere)
+**Updated:** 2026-06-29 (gap-review: CMD-06 and MSG-06 added; traceability fully repopulated for 47 v1 requirements)
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event.
 
 ## v1 Requirements
@@ -70,7 +70,7 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models. (When renaming the existing tables, hand-verify the generated migration SQL emits `RENAME TABLE`, not drop+recreate — no data loss.)
 - [ ] **DATA-02**: `user_id` is denormalized onto Room and Device; ownership checks use it directly (no joins through the hierarchy)
 - [ ] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
-- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state and command-status writes use atomic guarded statements with a `(timestamp, event_id)` tuple tiebreaker (not read-then-write); event idempotency via a MongoDB unique index on `event_id` (= producer-minted `report_id`), i.e. message-identity dedupe
+- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state writes use a single atomic tuple-guarded `UPDATE … WHERE (last_event_at, last_event_id) < (:recorded_at, :event_id)` (stores `last_event_id` on the state row; uuid v7 makes this deterministic); event idempotency via a MongoDB unique index on `event_id` (= producer-minted `report_id`), i.e. message-identity dedupe. Transactions are scoped: **no cross-store transaction**, and a transaction is **never** a substitute for the idempotency guard — but **intra-MariaDB transactions are used** where multiple rows must change together (device + eager state row; command + `command_targets`; target-status + command roll-up).
 
 ### Testing
 
@@ -85,7 +85,7 @@ Tests use the existing convention: Node's built-in runner (`node:test` + `node:a
 - [ ] **TEST-07**: Validation tests — an illogical command action for a device type is rejected with 400 before dispatch (CMD-03)
 - [ ] **TEST-08**: Auth-boundary tests — every new endpoint returns 401 when called without a valid token
 - [ ] **TEST-09**: Per-device-type state validation — for each device type, valid state values are accepted and out-of-range/invalid values rejected (brightness 0–100, AC temp bounds, sensor is report-only, etc.)
-- [ ] **TEST-10**: Out-of-order guard test — an older (stale) report does not overwrite newer current state (validates the `last_event_at` guard; distinct from idempotency)
+- [ ] **TEST-10**: Out-of-order guard test — an older (stale) report does not overwrite newer current state (validates the `(last_event_at, last_event_id)` tuple guard; distinct from idempotency)
 - [ ] **TEST-11**: Selector + fan-out tests — a room/house selector (with optional type filter) resolves to exactly the owned matching devices; a multi-device command emits one event per device sharing `command_id`; a partial failure rolls up to `partially_failed`
 - [ ] **TEST-12**: History query tests — time-range filtering returns only in-range events; cursor pagination is stable under concurrent appends (no duplicates or gaps across pages); a user cannot read another user's device events
 
@@ -112,6 +112,13 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | Event retention | **No TTL in v1** — retain all events; archival deferred | EVENT-07 (v2) |
 | Test infrastructure | **Testcontainers** (MariaDB + MongoDB + RabbitMQ) for async integration tests; pure unit tests for infra-free logic | TEST-02..06 |
 | Existing table names | Align `User`/`RefreshToken` to `users`/`refresh_tokens` via `@@map` (rename migration); columns already mapped | DATA-01 |
+| Idempotency key | Producer-minted `report_id` (uuid v7) = `event_id`; message-identity dedupe | DATA-04, EVENT-01 |
+| Tuple guard columns | State detail rows store `last_event_at` AND `last_event_id`; guard is tuple compare, not strictly-less-than timestamp | DATA-04, STATE-01 |
+| Eager state row | Created at device creation with defaults; consumer ONLY does a guarded UPDATE, never a create | STATE-01 |
+| Boot resilience | Env fail-fast; broker/Mongo connect in background; auth/CRUD unaffected; dependent endpoints 503 | MSG-01 |
+| Worker process | Separate process (`npm run worker`); API owns topology; worker asserts idempotently | MSG-03 |
+| Terminal state / reaper | `deadline_at` on CommandTarget; reaper sweeps pending-past-deadline → failed; roll-up: done/partially_failed/failed | CMD-06 |
+| Autonomous telemetry | Deferred to v2; all v1 reports are command-driven | TELEM-01 (v2) |
 
 ## Out of Scope
 
@@ -148,6 +155,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | DEV-03 | Phase 2 | Pending |
 | DEV-04 | Phase 2 | Pending |
 | DEV-05 | Phase 2 | Pending |
+| STATE-01 | Phase 2 | Pending |
 | TEST-01 | Phase 2 | Pending |
 | TEST-05 | Phase 2 | Pending |
 | TEST-08 | Phase 2 | Pending |
@@ -157,12 +165,13 @@ Explicitly excluded. Documented to prevent scope creep.
 | CMD-03 | Phase 4 | Pending |
 | CMD-04 | Phase 4 | Pending |
 | CMD-05 | Phase 4 | Pending |
+| CMD-06 | Phase 4 | Pending |
 | MSG-02 | Phase 4 | Pending |
 | TEST-07 | Phase 4 | Pending |
 | MSG-03 | Phase 5 | Pending |
+| MSG-06 | Phase 5 | Pending |
 | MSG-04 | Phase 6 | Pending |
 | MSG-05 | Phase 6 | Pending |
-| STATE-01 | Phase 6 | Pending |
 | STATE-02 | Phase 6 | Pending |
 | STATE-03 | Phase 6 | Pending |
 | STATE-04 | Phase 6 | Pending |
@@ -181,11 +190,17 @@ Explicitly excluded. Documented to prevent scope creep.
 | TEST-02 | Phase 8 | Pending |
 | TEST-11 | Phase 8 | Pending |
 
-**Coverage:** ⚠️ Stale — CMD-06 and MSG-06 added (gap-review round); pending roadmap regeneration.
-- v1 requirements: 47 total (HOUSE 5, ROOM 4, DEV 5, STATE 4, CMD 6, MSG 6, EVENT 6, DATA 4, TEST 12)
-- Mapped to phases: pending regeneration
-- Unmapped: CMD-06, MSG-06 ⚠️
+**Coverage:** 47/47 v1 requirements mapped ✓
+- HOUSE: 5/5 (Phase 2)
+- ROOM: 4/4 (Phase 2)
+- DEV: 5/5 (Phase 2)
+- STATE: 4/4 (STATE-01 → Phase 2; STATE-02/03/04 → Phase 6)
+- CMD: 6/6 (all Phase 4)
+- MSG: 6/6 (MSG-01 → Phase 3; MSG-02 → Phase 4; MSG-03/MSG-06 → Phase 5; MSG-04/05 → Phase 6)
+- EVENT: 6/6 (EVENT-01/02/06 → Phase 6; EVENT-03/04/05 → Phase 7)
+- DATA: 4/4 (Phase 1)
+- TEST: 12/12 (Phases 2, 4, 6, 7, 8)
 
 ---
 *Requirements defined: 2026-06-25*
-*Last updated: 2026-06-29 — traceability repopulated after 8-phase roadmap regeneration*
+*Last updated: 2026-06-29 — gap-review round: CMD-06 and MSG-06 added and mapped; traceability fully repopulated for all 47 v1 requirements; STATE-01 moved to Phase 2 (eager row at device creation); DATA-04 guard language updated to tuple (last_event_at, last_event_id)*
