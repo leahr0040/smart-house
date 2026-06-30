@@ -113,6 +113,7 @@ The system always reflects the true current state of the house AND preserves a c
 | Failure taxonomy routes by **reason**: poison → DLQ; transient/**offline** → retry → DLQ; **determined** (deleted/rejected/invalid/type-incompatible) → failure report (acked, not DLQ) | DLQ is for unprocessable/uncertain messages, not settled device "no" outcomes | — Pending |
 | Command-lifecycle events (received/resolved/rejected/completed) in the events table (`entity_type=command`) | Complete intent→outcome timeline for audit + future AI; cheap | — Pending |
 | No Redis in v1 | No measured bottleneck; avoids re-introducing the unjustified-second-store tax just removed with Mongo | — Pending |
+| Action vocabulary in code (TypeBox registry in `device-actions.ts`), per-device limits/config in DB | Static types + free validation; behavior is code anyway so a DB vocabulary would decouple from handlers; registry-seamed so v2 can swap to a DB source when dynamic/admin/per-tenant device types are a real requirement | — Pending |
 | Reports flow in via RabbitMQ only (no REST report endpoint) | Exercises the exact event-driven path real hardware uses in v2 | — Pending |
 | snake_case via `@map`/`@@map`, including existing models | Consistent DB convention across the schema | — Pending |
 | Multi-tenant from day one; API-only v1; AI deferred | Existing auth supports many users; ship the platform first | — Pending |

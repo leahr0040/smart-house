@@ -1,7 +1,7 @@
 # Requirements: Smart House
 
 **Defined:** 2026-06-25
-**Updated:** 2026-06-30 (layered-validation refinement: CMD-08 added; CMD-03/CMD-05/EVENT-01/MSG-05/MSG-06 revised; failure taxonomy; command-lifecycle events; traceability repopulated for all 49 v1 requirements)
+**Updated:** 2026-06-30 (validation-terminology + failure-routing refinement: two-tier validation (acceptance sync + type validation async); "sub-type" term removed → "type validation"; failure taxonomy by reason; 49 v1 requirements unchanged; IDs unchanged)
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event.
 
 ## v1 Requirements
@@ -133,6 +133,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | Failure taxonomy | route by **reason**: poison → DLQ; transient/**offline** → retry → DLQ; **determined** (deleted/rejected/invalid/type-incompatible) → failure report (acked, not DLQ) | MSG-05, MSG-06 |
 | Command-lifecycle events | received/resolved/rejected/completed written to `events` (`entity_type=command`, `device_id` null) | EVENT-01 |
 | Redis | Not in v1 (no measured need; avoids re-introducing an unjustified store) | — |
+| Action catalog | **Vocabulary in code** (TypeBox registry in `device-actions.ts`); per-device limits/config in DB; registry-seamed for a v2 DB source. Not a DB-backed catalog in v1 | CMD-03, CMD-08, DEV-05 |
 
 ## Out of Scope
 
@@ -221,4 +222,4 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ---
 *Requirements defined: 2026-06-25*
-*Last updated: 2026-06-30 — layered-validation refinement: CMD-08 added (async sub-type business validation, Phase 4); CMD-03 revised (layered model: acceptance sync 400, type-level sync → rejected, sub-type async); CMD-05 revised (status set includes received/rejected/pending/done/partially_failed/failed); EVENT-01 revised (entity_type column, nullable device_id, command-lifecycle rows); MSG-05 revised (failure taxonomy: poison→DLQ, transient→retry→DLQ, domain rejection→failure report acked); MSG-06 revised (domain rejection incl. failed async sub-type validation → failure report, not DLQ); traceability repopulated for all 49 v1 requirements*
+*Last updated: 2026-06-30 — validation-terminology + failure-routing refinement: two-tier validation (acceptance sync + type validation async); removed "type-level sync post-persist → rejected" middle tier; acceptance action↔type only for explicit-device-id selectors; failure taxonomy by reason (poison→DLQ, transient/offline→retry→DLQ, determined domain outcome→failure report acked not DLQ); "sub-type" term removed throughout → "type validation"; 49 v1 requirements unchanged; IDs unchanged*
