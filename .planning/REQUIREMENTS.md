@@ -1,7 +1,7 @@
 # Requirements: Smart House
 
 **Defined:** 2026-06-25
-**Updated:** 2026-06-30 (single-store pivot: MongoDB dropped throughout; events are a MariaDB append-only table; CMD-07 added; traceability repopulated for all 48 v1 requirements)
+**Updated:** 2026-06-30 (layered-validation refinement: CMD-08 added; CMD-03/CMD-05/EVENT-01/MSG-05/MSG-06 revised; failure taxonomy; command-lifecycle events; traceability repopulated for all 49 v1 requirements)
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event.
 
 ## v1 Requirements
@@ -42,12 +42,12 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 
 - [ ] **CMD-01**: User can issue a command targeting devices via a selector (explicit ids, a room, or a house — with optional device-type filter)
 - [ ] **CMD-02**: The command handler resolves the selector to the user's owned device set (cross-tenant targets excluded)
-- [ ] **CMD-03**: Validation is layered — **acceptance** checks (shape/types/format/required + selector well-formed) reject with **400 before persist**; a **type-level** action/device-type mismatch (e.g. temperature on a light) rejects synchronously (command → `rejected`). Deep per-type business rules are NOT validated synchronously (see CMD-08)
+- [ ] **CMD-03**: Validation is layered. **Acceptance** (sync, pre-persist → 400): shape/types/format/required, selector well-formed, valid action object, fan-out cap. **Action↔type compatibility** is checked synchronously (→ 400) **only for explicit-device-id selectors** (named devices whose type can't accept the action); type-scoped selectors (scope + `deviceType`) need no check (the selector guarantees the type), and untyped scope selectors defer per-target action↔type to async. All other business rules → CMD-08
 - [ ] **CMD-04**: A command fans out to all resolved devices (best-effort); one command intent is recorded, linked to per-device effects; the command carries the desired intent + per-device status
-- [ ] **CMD-05**: User can query a command's status (`GET /commands/:id`) — command status (received / rejected / pending / done / partially_failed) and per-device target completion (pending / done / failed)
+- [ ] **CMD-05**: User can query a command's status (`GET /commands/:id`) — command status (received / rejected / pending / done / partially_failed / failed) and per-device target completion (pending / done / failed)
 - [ ] **CMD-06**: Command targets reach a terminal state via **compare-and-set** (`pending → done|failed` only, never overwriting a terminal state): a success report → `done`; a worker failure report or a timeout **reaper** (target still `pending` past its `deadline_at`) → `failed`. **First terminal wins** — a late success after a reaper-`failed` is recorded as an event but does not flip the status. The command rolls up: all done → `done`, all failed → `failed`, mixed → `partially_failed`.
 - [ ] **CMD-07**: Command creation persists the command (`received`) + `command_targets` (one transaction) **before** publishing effects (never publish-first). A selector resolving to more than a configurable max (default ~200) targets is rejected with 400.
-- [ ] **CMD-08**: Deep per-type ("sub-type") business validation — value ranges, cross-entity rules, DB/external lookups — is **asynchronous and event-driven** (worker/consumer path). Failures transition the target/command to `failed`/`rejected` via emitted command-lifecycle events and compensating actions, never a synchronous rejection of the already-accepted command.
+- [ ] **CMD-08**: **Type validation** (the device-type business-logic layer) — action↔type for non-homogeneous (untyped-scope) targets, value/range constraints per type, device availability (online/reachable), device lifecycle (not deleted, house active), state-dependent rules, cross-entity/DB/external lookups — is **asynchronous and event-driven** (worker/consumer path). Failures transition the target/command to `failed`/`rejected` via emitted command-lifecycle events and compensating actions, never a synchronous rejection of the already-accepted command.
 
 ### Messaging (RabbitMQ)
 
@@ -55,8 +55,8 @@ Requirements for the event-driven smart-home platform milestone. Built on the ex
 - [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
 - [ ] **MSG-03**: A simulated device worker — run as a separate process via `npm run worker` — consumes effects, applies them, and publishes a report back (stand-in for hardware). The API process owns/declares the RabbitMQ topology; the worker asserts it idempotently on boot.
 - [ ] **MSG-04**: A report consumer ingests reports (validating the `device_id` exists and is owned; `device_token` envelope field reserved, unenforced in v1), and in **one MariaDB transaction** appends the event row to the `events` table, guarded-updates the current-state row, CAS-updates the command target, and recomputes the command roll-up
-- [ ] **MSG-05**: Failures are split by kind: **poison** (malformed/unparseable/unknown message) → DLQ, no retry; **transient** (temporary unavailability/timeout) → bounded retry (`x-death` count) → DLQ after N; **domain rejection** (a valid effect the device / async sub-type validation legitimately can't satisfy) → **failure report → target `failed`, message acked** (NOT dead-lettered). v1 does **not** drain or alert the DLQ — manual inspection only (`// ponytail: DLQ drain + alert later`)
-- [ ] **MSG-06**: The simulated worker publishes an explicit **failure report** for a valid effect it cannot apply (incl. failed async sub-type validation) — a domain failure that flows back as a report (never the DLQ); the report consumer marks the target `failed`
+- [ ] **MSG-05**: Failures route by **reason**: **poison** (malformed/unparseable/unknown message) → DLQ, no retry; **transient/uncertain** (device offline/unreachable, timeout) → bounded retry (`x-death` count) → DLQ if it persists; **determined domain outcome** (device deleted, action rejected, value out of range, type-incompatible, failed type validation) → **failure report → target `failed`/`rejected`, message acked** (NOT dead-lettered). v1 does **not** drain or alert the DLQ — manual inspection only (`// ponytail: DLQ drain + alert later`)
+- [ ] **MSG-06**: The worker classifies a failed effect by reason — a **determined** rejection (type-incompatible, value out of range, device deleted, failed type validation) → explicit **failure report** (consumer marks target `failed`/`rejected`, never DLQ); a **transient** condition (device offline/timeout) → nack for retry → DLQ if it persists
 
 ### Event History
 
@@ -129,8 +129,8 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | DLQ in v1 | Not drained or alerted — manual inspection only | MSG-05 |
 | Autonomous telemetry | Deferred to v2; all v1 reports are command-driven | TELEM-01 (v2) |
 | uuid v7 storage | BINARY(16) vs CHAR(36) — confirmed via Phase 1 spike before migrations are finalized | DATA-04, EVENT-01 |
-| Validation model | **Layered**: acceptance (sync 400) → type-level (sync → rejected) → sub-type business (async, state transitions). "Sub-type" = the deep validation layer, not a schema column | CMD-03, CMD-08 |
-| Failure taxonomy | poison → DLQ; transient → retry → DLQ; domain rejection → failure report (acked, not DLQ) | MSG-05, MSG-06 |
+| Validation model | **Two tiers**: acceptance sync (structural + action↔type **only for explicit-device-id selectors** → 400) + **type validation** async (all device-type business logic → state transitions). No "sub-type" term/column | CMD-03, CMD-08 |
+| Failure taxonomy | route by **reason**: poison → DLQ; transient/**offline** → retry → DLQ; **determined** (deleted/rejected/invalid/type-incompatible) → failure report (acked, not DLQ) | MSG-05, MSG-06 |
 | Command-lifecycle events | received/resolved/rejected/completed written to `events` (`entity_type=command`, `device_id` null) | EVENT-01 |
 | Redis | Not in v1 (no measured need; avoids re-introducing an unjustified store) | — |
 
@@ -150,8 +150,6 @@ Explicitly excluded. Documented to prevent scope creep.
 | Redis / external cache | No measured bottleneck in v1; current state is single indexed rows. Add when a profiled hot path, real-time fan-out, or distributed rate-limit needs it |
 
 ## Traceability
-
-⚠️ **Stale** — layered validation (CMD-03 split + new CMD-08), failure taxonomy, command-lifecycle events added; pending roadmap regeneration.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -185,6 +183,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | CMD-05 | Phase 4 | Pending |
 | CMD-06 | Phase 4 | Pending |
 | CMD-07 | Phase 4 | Pending |
+| CMD-08 | Phase 4 | Pending |
 | MSG-02 | Phase 4 | Pending |
 | TEST-07 | Phase 4 | Pending |
 | MSG-03 | Phase 5 | Pending |
@@ -209,12 +208,12 @@ Explicitly excluded. Documented to prevent scope creep.
 | TEST-02 | Phase 8 | Pending |
 | TEST-11 | Phase 8 | Pending |
 
-**Coverage:** 48/48 v1 requirements mapped ✓
+**Coverage:** 49/49 v1 requirements mapped ✓
 - HOUSE: 5/5 (Phase 2)
 - ROOM: 4/4 (Phase 2)
 - DEV: 5/5 (Phase 2)
 - STATE: 4/4 (STATE-01 → Phase 2; STATE-02/03/04 → Phase 6)
-- CMD: 7/7 (all Phase 4)
+- CMD: 8/8 (all Phase 4 — incl. CMD-08)
 - MSG: 6/6 (MSG-01 → Phase 3; MSG-02 → Phase 4; MSG-03/MSG-06 → Phase 5; MSG-04/05 → Phase 6)
 - EVENT: 6/6 (EVENT-01/02/06 → Phase 6; EVENT-03/04/05 → Phase 7)
 - DATA: 4/4 (Phase 1)
@@ -222,4 +221,4 @@ Explicitly excluded. Documented to prevent scope creep.
 
 ---
 *Requirements defined: 2026-06-25*
-*Last updated: 2026-06-30 — single-store pivot: MongoDB dropped; events table is MariaDB append-only (EVENT-01/05 updated); CMD-07 added (persist-then-publish + fan-out cap); MSG-04 updated (one MariaDB transaction, no Mongo); TEST-02/06 updated (events table, not MongoDB); TEST-12 cursor updated to (recorded_at, event_id); testcontainers reduced to 2 containers (MariaDB + RabbitMQ); traceability repopulated for all 48 v1 requirements*
+*Last updated: 2026-06-30 — layered-validation refinement: CMD-08 added (async sub-type business validation, Phase 4); CMD-03 revised (layered model: acceptance sync 400, type-level sync → rejected, sub-type async); CMD-05 revised (status set includes received/rejected/pending/done/partially_failed/failed); EVENT-01 revised (entity_type column, nullable device_id, command-lifecycle rows); MSG-05 revised (failure taxonomy: poison→DLQ, transient→retry→DLQ, domain rejection→failure report acked); MSG-06 revised (domain rejection incl. failed async sub-type validation → failure report, not DLQ); traceability repopulated for all 49 v1 requirements*
