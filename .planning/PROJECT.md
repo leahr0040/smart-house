@@ -77,7 +77,7 @@ The system always reflects the true current state of the house AND preserves a c
 - **Action vocabulary** lives in code (TypeBox registry in `src/lib/device-actions.ts`), keyed by device type; per-device limits/config live in the DB. Registry-seamed so a DB-backed vocabulary can be introduced in v2 if dynamic/admin/per-tenant device types become a requirement.
 - **Failure taxonomy** (route by reason):
   - *Poison* (malformed/unparseable/unknown message) → DLQ, no retry.
-  - *Transient / uncertain* (device offline/unreachable, timeout) → bounded retry (`x-death` count); still failing → DLQ.
+  - *Transient / uncertain* (device offline/unreachable, timeout) → **nack (no requeue) → a `*.retry` wait queue** (`x-message-ttl` backoff, default ~30s, dead-lettering back to the main queue); the `x-death` count bounds retries (default ~5), then park in the terminal DLQ. Plain `requeue=true` is never used — it hot-spins and doesn't advance `x-death`.
   - *Determined domain outcome* (device deleted, action rejected, value out of range, type-incompatible, failed type validation) → failure report → target `failed`/`rejected`, message acked (not dead-lettered).
   - v1 does not drain or alert the DLQ — manual inspection only. `// ponytail: DLQ drain + alert when ops maturity needs it.`
 - **Command creation**: persist Command (`received`) + `command_targets` in one transaction, then publish effects (never publish-first; a crash after commit leaves targets `pending` → the reaper self-heals to `failed`).
@@ -114,7 +114,7 @@ The system always reflects the true current state of the house AND preserves a c
 | Command-lifecycle events in the `events` table (`entity_type=command`) | Complete intent→outcome timeline for audit + future AI |
 | Reports flow in via RabbitMQ only (no REST report endpoint) | Exercises the exact path real hardware uses in v2 |
 | uuid v7 PKs (new entities); snake_case via `@map`/`@@map`; existing-table rename via hand-authored `ALTER TABLE … RENAME` | Non-enumerable IDs; consistent naming; no data-loss on rename |
-| RabbitMQ topic exchanges + DLX/DLQ, `prefetch=1`; API owns topology; worker is a separate process (`npm run worker`) | Future routing flexibility; bounded redelivery; clean process boundaries |
+| RabbitMQ topic exchanges; per consumer queue: main + `*.retry` wait queue (fixed ~30s TTL, dead-letters back to main) + terminal `*.dlq`; `x-death`-bounded retry (~5); `prefetch=1`; API owns topology; worker is a separate process (`npm run worker`) | Wait-queue gives delayed bounded retry that plain requeue cannot; future routing flexibility; clean process boundaries |
 | Boot resilience: env fail-fast; broker background connect; `POST /commands` → 503 when broker down | Don't couple `/auth` availability to the broker |
 | Multi-tenant; soft-delete on User/House/Room/Device; soft-deleted device history stays readable | Correct isolation; deletion hides from listings, not from history |
 | Tests: testcontainers (MariaDB + RabbitMQ, shared suite fixture + between-test reset); pure unit tests for infra-free logic | Faithful DLQ/idempotency/redelivery semantics without cross-test pollution |

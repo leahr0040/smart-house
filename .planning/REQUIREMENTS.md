@@ -49,12 +49,12 @@ The event-driven smart-home platform milestone, built on the existing Fastify 5 
 
 ### Messaging (RabbitMQ)
 
-- [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology (topic effects + reports exchanges, queues, dead-letter exchange/queue, `prefetch=1`). Env-var validation fails fast, but transient broker unavailability does NOT block startup (background reconnect); auth + CRUD + state/event reads stay available, while `POST /commands` returns 503 while the broker is down
+- [ ] **MSG-01**: On boot the app provisions the RabbitMQ topology — topic effects + reports exchanges; for **each consumer queue**: the main queue, a `*.retry` wait queue (`x-message-ttl` backoff ~30s, dead-lettering back to the main exchange), and a terminal `*.dlq`; `prefetch=1`. Env-var validation fails fast, but transient broker unavailability does NOT block startup (background reconnect); auth + CRUD + state/event reads stay available, while `POST /commands` returns 503 while the broker is down
 - [ ] **MSG-02**: The command handler translates each command into per-device effects and publishes them to the broker
 - [ ] **MSG-03**: A simulated device worker — run as a separate process via `npm run worker` — consumes effects, applies them, and publishes a report back. It mints the report's `event_id` deterministically (`uuidv5(command_target_id)`) and stamps `recorded_at` as event-time, so an effect redelivery re-produces the same `event_id`. The API process owns/declares the topology; the worker asserts it idempotently
 - [ ] **MSG-04**: A report consumer ingests reports (validating the `device_id` exists and is owned; `device_token` reserved, unenforced in v1), and in **one MariaDB transaction** appends the event row, guarded-updates the current-state row, CAS-updates the command target, and recomputes the command roll-up under a `SELECT … FOR UPDATE` lock on the command
-- [ ] **MSG-05**: Failures route by **reason**: **poison** (malformed/unparseable/unknown message) → DLQ, no retry; **transient/uncertain** (device offline/unreachable, timeout) → bounded retry (`x-death`) → DLQ if it persists; **determined domain outcome** (device deleted, action rejected, value out of range, type-incompatible, failed type validation) → **failure report → target `failed`/`rejected`, acked** (NOT dead-lettered). v1 does not drain/alert the DLQ — manual inspection only
-- [ ] **MSG-06**: The worker classifies a failed effect by reason — a **determined** rejection → explicit **failure report** (consumer marks target `failed`/`rejected`, never DLQ); a **transient** condition (offline/timeout) → nack for retry → DLQ if it persists
+- [ ] **MSG-05**: Failures route by **reason**: **poison** (malformed/unparseable/unknown message) → DLQ, no retry; **transient/uncertain** (device offline/unreachable, timeout) → **nack (no requeue) → `*.retry` wait queue (TTL backoff) → dead-letters back to the main queue; `x-death` count bounds retries (default ~5), then park in the terminal DLQ** (plain `requeue=true` is never used — it hot-spins and never advances `x-death`); **determined domain outcome** (device deleted, action rejected, value out of range, type-incompatible, failed type validation) → **failure report → target `failed`/`rejected`, acked** (NOT dead-lettered). v1 does not drain/alert the DLQ — manual inspection only
+- [ ] **MSG-06**: The worker classifies a failed effect by reason — a **determined** rejection → explicit **failure report** (consumer marks target `failed`/`rejected`, never DLQ); a **transient** condition (offline/timeout) → **nack (no requeue) → `*.retry` wait queue (delayed redelivery); after ~5 attempts (`x-death`) → terminal DLQ**
 
 ### Event History
 
@@ -100,13 +100,13 @@ Tests use the existing convention: `node:test` + `node:assert`, the `build(t)` h
 | Current state | Single facet per device via polymorphic morph; per-device limits/config in DB |
 | Action vocabulary | Code (TypeBox registry in `device-actions.ts`); registry-seamed for a v2 DB source |
 | Validation | Two tiers: sync acceptance (structural + action↔type for explicit-id) / async type validation (device-knowable in worker, platform gates on platform) |
-| Failure routing | poison → DLQ; transient/offline → retry → DLQ; determined → failure report (acked); DLQ not drained in v1 |
+| Failure routing | poison → DLQ; transient/offline → nack (no requeue) → `*.retry` wait queue (fixed ~30s TTL) → main, `x-death`-bounded (~5) → DLQ; determined → failure report (acked); DLQ not drained in v1 |
 | Command | First-class entity + `command_targets`; selector union; `user_id` denormalized; CAS terminal (first-terminal-wins); `deadline_at` + reaper |
 | Empty selector | Explicit-id 0-owned → 400; scope 0-match → `no_targets` |
 | Fan-out cap | ~200 targets, else 400 |
 | PKs | uuid v7 for new entities; User/RefreshToken Int |
 | Existing tables | `@@map` rename via hand-authored `ALTER TABLE … RENAME` |
-| RabbitMQ | Topic exchanges + DLX/DLQ; `prefetch=1`; API owns topology; worker a separate process |
+| RabbitMQ | Topic exchanges; per consumer queue: main + `*.retry` wait queue (fixed ~30s TTL, DLX→main) + terminal DLQ; `prefetch=1`; API owns topology; worker a separate process |
 | Boot | Env fail-fast; broker background connect; `POST /commands` → 503 when broker down |
 | Device report trust | Existence/ownership check; `device_token` reserved for v2 |
 | Event retention | No TTL in v1 |
