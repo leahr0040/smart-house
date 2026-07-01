@@ -1,3 +1,20 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+current_phase: 1
+current_phase_name: Schema & Data Conventions
+status: Not started
+stopped_at: Phase 1 context gathered
+last_updated: "2026-07-01T10:58:52.943Z"
+progress:
+  total_phases: 8
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
+---
+
 # Project State — Smart House
 
 **Generated:** 2026-06-30
@@ -91,6 +108,7 @@ Phase 8 [        ] Not started
 Plan and execute **Phase 1: Schema & Data Conventions.**
 
 Start with:
+
 1. Conduct the uuid-v7 storage spike (`BINARY(16)` vs `CHAR(36)`) and document the decision as a schema comment or ADR note.
 2. Add all new Prisma models to `prisma/schema.prisma` (House, Room, Device, Command, CommandTarget, per-type state detail tables, Event). The `events` model must include `entity_type` + nullable `device_id` from day one.
 3. Hand-author the rename migration for `users` and `refresh_tokens`; verify the generated SQL emits `RENAME TABLE`, not DROP+CREATE.
@@ -111,9 +129,14 @@ None.
 
 ## Session Continuity
 
+**Last session:** 2026-07-01T10:58:52.931Z
+**Stopped at:** Phase 1 context gathered
+**Resume file:** .planning/phases/01-schema-data-conventions/01-CONTEXT.md
+
 **To resume:** Read `.planning/ROADMAP.md` Phase 1 detail section and `.planning/PROJECT.md` Constraints to re-establish context, then check which plans under Phase 1 are marked complete in the Progress table.
 
 **Key orientation points for the next session:**
+
 - Existing codebase: Fastify 5 + Prisma + MariaDB auth API (register, login, refresh, me, logout). No house/room/device/event/command functionality exists yet.
 - Phase 1 is schema-only. The acceptance bar is compile + migration smoke-check (not TDD-red) — see PROJECT.md Development Process exception for schema/infra phases.
 - Phase 2 introduces eager state row creation at device creation (STATE-01 delivered here, not in the consumer).
