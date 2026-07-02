@@ -15,6 +15,10 @@ Lock the **complete Prisma schema** — all new domain tables (House, Room, Devi
 
 Almost all of Phase 1 was already locked by the planning docs (see Canonical References). The decisions below fill the gaps those docs left open.
 
+### Identifier strategy (revised 2026-07-02 — supersedes the earlier "uuid v7 PKs" decision)
+- **D-11:** Every table uses a `BigInt @default(autoincrement())` internal PK (`id`). The existing `User`/`RefreshToken` PKs (and `refresh_tokens.user_id` FK) widen Int→BigInt so all FKs are uniform integers — this also dissolves the earlier `User.id`-Int-vs-`Char(36)` denorm type mismatch. External, non-enumerable identity is a NanoID `public_id` (`@unique`) on **user-facing entities only** — House, Room, Device, Command. CommandTarget, the four state tables, and `events` have no `public_id` (addressed internally). NanoID has no Prisma native default → generated app-side at create time; Phase 1 shapes the `@unique` column (sized for a 21-char NanoID), the generator lands in Phase 2. Motivation: compact 8-byte keys/indexes on the hot append-only `events` table; non-enumerable external IDs preserved via `public_id`.
+- **D-12 (events ids):** `events` gets a BigInt `id` PK — the ordering key: cursor `(recorded_at, id)` and the target referenced by `last_event_id` — **plus** the deterministic `event_id` uuidv5 (`@unique`, idempotency) already locked in PROJECT.md. Ordering never compares the uuidv5. No `@default(uuid())` anywhere, so the former uuid-v7-vs-v4 adapter spike is dropped.
+
 ### Per-type state detail columns
 The four morph detail tables carry these state columns. **No DB-level enums, CHECK constraints, or min/max** — every value/range/vocabulary rule is enforced in the TypeBox app layer (consistent with the action-registry philosophy in PROJECT.md).
 
@@ -22,7 +26,7 @@ The four morph detail tables carry these state columns. **No DB-level enums, CHE
 - **D-02 `ac_states`:** `is_on` (Boolean), `target_temp` (Int), `mode` (String — plain column, e.g. cool/heat/fan/auto validated in TypeBox, **not** a DB enum).
 - **D-03 `heater_states`:** `is_on` (Boolean), `target_temp` (Int).
 - **D-04 `sensor_states`:** `reading` (Decimal), `unit` (String).
-- **D-05:** Every detail table also carries `last_event_at` (DateTime, nullable) and `last_event_id` (uuid v7, nullable) for the tuple guard, plus the morph back-link to the owning device. Rows are created eagerly at device creation with defaults (STATE-01 — delivered in Phase 2, but the columns/defaults are shaped here).
+- **D-05:** Every detail table also carries `last_event_at` (DateTime, nullable) and `last_event_id` (BigInt, nullable — references `events.id`) for the tuple guard, plus the morph back-link to the owning device. Rows are created eagerly at device creation with defaults (STATE-01 — delivered in Phase 2, but the columns/defaults are shaped here).
 
 ### Enum representation (no native DB enums)
 - **D-06:** Represent `Command.status` (`received`/`rejected`/`pending`/`done`/`partially_failed`/`failed`/`no_targets`), `events.entity_type` (`device`/`command`), `events.device_type`, `events.event_kind`, `events.source`, and `ac_states.mode` as **plain `String` columns validated in TypeBox**, not Prisma/MySQL native enums. Rationale: simpler migrations (adding a value never requires an `ALTER TYPE`), and it matches the user's explicit "no DB enums/limits" preference and the code-first action vocabulary. ROADMAP success criteria that say "enum: device | command" are satisfied by an app-validated string domain.
@@ -37,7 +41,7 @@ Beyond `name` and the structural FKs / `user_id` denorm / `deleted_at` already l
 - **D-10 Device:** `manufacturer` (String, optional) and `model` (String, optional) — hardware metadata for future AI/analytics and real-hardware v2; zero runtime cost now. `device_type` is a validated `String` (per D-06).
 
 ### Claude's Discretion
-- **uuid v7 storage format** (`BINARY(16)` vs `CHAR(36)`): explicitly a **research spike** (ROADMAP success criterion 5), left to the phase researcher — must also confirm the Prisma MariaDB adapter emits v7 (not v4) for `@default(uuid())`. Whatever is chosen must be applied consistently to `event_id`/`last_event_id` and carried into the Phase 7 cursor-comparison decision.
+- **NanoID `public_id` generation seam** (app-side): NanoID has no Prisma native default, so the generation approach (a Prisma client `query` extension on create vs. minting in each `createX` service) is a small decision for the researcher to recommend. The *generator* itself lands in Phase 2 (Phase 1 creates no records); Phase 1 only shapes the `@unique` `public_id` column. Also confirm the NanoID column type/length under the MariaDB adapter (e.g. `@db.VarChar(21)`).
 - **Per-device limits/config surface:** user chose **not** to model limits as DB columns/enums in v1. No separate config table and no min/max columns — limits live in the TypeBox action registry (`src/lib/device-actions.ts`). Registry-seamed for a v2 DB-backed source if dynamic device types ever land.
 - Exact Prisma decimal precision for `sensor_states.reading` / `ac`/`heater` `target_temp` — pick sensible defaults (e.g. `Decimal(6,2)` for readings, `Int` for temps as decided).
 
