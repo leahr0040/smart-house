@@ -26,7 +26,6 @@
 ### Phase 1: Schema & Data Conventions
 
 **Goal**: The complete Prisma schema — including the append-only MariaDB `events` table and all per-type state tables — is locked in before a single entity record is created; every data convention is applied uniformly.
-**Mode:** mvp
 **Depends on**: Nothing (foundation — extends existing auth schema)
 **Requirements**: DATA-01, DATA-02, DATA-03, DATA-04
 
@@ -43,7 +42,10 @@
 - Compile + migration smoke-check (NOT TDD-red): this phase has no runnable application logic to test red. The acceptance bar is `prisma migrate dev` exits 0, `npm run build` compiles clean, `npm test` passes existing auth tests. Do NOT dress a compile check up as a failing test.
 - Implement: write migrations; rename existing tables (hand-verify RENAME TABLE in generated SQL); add new models and columns including the `events` table with `entity_type` and nullable `device_id`; conduct uuid-v7-storage spike; finalize storage decision; regenerate Prisma client; confirm build and existing tests still pass.
 
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 01-01-PLAN.md — Scaffold all 10 new models + User @@map/deleted_at in schema.prisma; regenerate client; compile clean (Wave 1)
+- [ ] 01-02-PLAN.md — Hand-authored User→users rename migration (RENAME TABLE, human-verified) + apply + auth regression (Wave 2)
+- [ ] 01-03-PLAN.md — Additive domain-schema migration apply + uuid-v7 storage spike + full acceptance gate (Wave 3)
 
 ---
 
@@ -214,7 +216,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema & Data Conventions | 0/0 | Not started | - |
+| 1. Schema & Data Conventions | 0/3 | Not started | - |
 | 2. Entity CRUD & Multi-Tenancy | 0/0 | Not started | - |
 | 3. Messaging Infrastructure | 0/0 | Not started | - |
 | 4. Command Handler & Dispatcher | 0/0 | Not started | - |
