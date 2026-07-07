@@ -44,18 +44,14 @@
 - Compile + migration smoke-check (NOT TDD-red): this phase has no runnable application logic to test red. The acceptance bar is `prisma migrate dev` exits 0, `npm run build` compiles clean, `npm test` passes existing auth tests. Do NOT dress a compile check up as a failing test.
 - Implement: write migrations; rename existing tables (hand-verify RENAME TABLE in generated SQL); add new models and columns including the `events` table with `entity_type` and nullable `device_id`; confirm the NanoID public_id generation seam (app-side; the `@unique` column is shaped here, the generator lands in Phase 2); regenerate Prisma client; confirm build and existing tests still pass.
 
-**Plans**: 3 plans
+**Plans**: 2 plans
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Scaffold all 10 new models + User @@map/deleted_at in schema.prisma; regenerate client; compile clean (Wave 1)
+- [ ] 01-01-PLAN.md — Existing-tables migration: `User`→`users` rename + `deleted_at` + Int→BigInt widen of `User`/`RefreshToken`, in ONE hand-verified migration, plus auth-layer bigint handling (Wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Hand-authored User→users rename migration (RENAME TABLE, human-verified) + apply + auth regression (Wave 2)
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [ ] 01-03-PLAN.md — Additive domain-schema migration apply + uuid-v7 storage spike + full acceptance gate (Wave 3)
+- [ ] 01-02-PLAN.md — Additive migration: all 10 new tables (BigInt PKs, NanoID `public_id` on user-facing entities, dual-id `events`) + full acceptance gate (Wave 2)
 
 ---
 
