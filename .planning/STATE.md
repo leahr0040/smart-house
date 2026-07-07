@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Schema & Data Conventions
-status: Not started
+current_phase: 01
+current_phase_name: schema-data-conventions
+status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-07-01T10:58:52.943Z"
+last_updated: "2026-07-07T08:33:36.254Z"
 progress:
   total_phases: 8
   completed_phases: 0
-  total_plans: 0
+  total_plans: 2
   completed_plans: 0
   percent: 0
 ---
@@ -25,16 +25,16 @@ progress:
 
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event — so nothing about the home's behavior is ever lost.
 
-**Current Focus:** Milestone 1 — Event-Driven Smart-Home Platform. Builds the command/state platform on top of the existing Fastify 5 + Prisma + MariaDB auth API; adds RabbitMQ for event-driven dispatch and an append-only MariaDB `events` table as the source of truth.
+**Current Focus:** Phase 01 — schema-data-conventions
 
 ---
 
 ## Current Position
 
 **Milestone:** 1 — Event-Driven Smart-Home Platform
-**Phase:** 1 — Schema & Data Conventions
-**Plan:** None (not yet planned)
-**Status:** Not started
+**Phase:** 01 (schema-data-conventions) — EXECUTING
+**Plan:** 1 of 2
+**Status:** Executing Phase 01
 
 ```
 Phase 1 [        ] Not started
