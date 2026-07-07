@@ -52,7 +52,17 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  RefreshToken: 'RefreshToken'
+  RefreshToken: 'RefreshToken',
+  House: 'House',
+  Room: 'Room',
+  Device: 'Device',
+  Command: 'Command',
+  CommandTarget: 'CommandTarget',
+  LightState: 'LightState',
+  AcState: 'AcState',
+  HeaterState: 'HeaterState',
+  SensorState: 'SensorState',
+  Event: 'Event'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -96,12 +106,165 @@ export const RefreshTokenScalarFieldEnum = {
 export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
 
 
+export const HouseScalarFieldEnum = {
+  id: 'id',
+  publicId: 'publicId',
+  userId: 'userId',
+  name: 'name',
+  address: 'address',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HouseScalarFieldEnum = (typeof HouseScalarFieldEnum)[keyof typeof HouseScalarFieldEnum]
+
+
+export const RoomScalarFieldEnum = {
+  id: 'id',
+  publicId: 'publicId',
+  houseId: 'houseId',
+  userId: 'userId',
+  name: 'name',
+  floor: 'floor',
+  roomType: 'roomType',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RoomScalarFieldEnum = (typeof RoomScalarFieldEnum)[keyof typeof RoomScalarFieldEnum]
+
+
+export const DeviceScalarFieldEnum = {
+  id: 'id',
+  publicId: 'publicId',
+  userId: 'userId',
+  roomId: 'roomId',
+  name: 'name',
+  deviceType: 'deviceType',
+  manufacturer: 'manufacturer',
+  model: 'model',
+  stateType: 'stateType',
+  stateId: 'stateId',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DeviceScalarFieldEnum = (typeof DeviceScalarFieldEnum)[keyof typeof DeviceScalarFieldEnum]
+
+
+export const CommandScalarFieldEnum = {
+  id: 'id',
+  publicId: 'publicId',
+  userId: 'userId',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CommandScalarFieldEnum = (typeof CommandScalarFieldEnum)[keyof typeof CommandScalarFieldEnum]
+
+
+export const CommandTargetScalarFieldEnum = {
+  id: 'id',
+  commandId: 'commandId',
+  deviceId: 'deviceId',
+  status: 'status',
+  deadlineAt: 'deadlineAt',
+  createdAt: 'createdAt'
+} as const
+
+export type CommandTargetScalarFieldEnum = (typeof CommandTargetScalarFieldEnum)[keyof typeof CommandTargetScalarFieldEnum]
+
+
+export const LightStateScalarFieldEnum = {
+  id: 'id',
+  deviceId: 'deviceId',
+  isOn: 'isOn',
+  brightness: 'brightness',
+  lastEventAt: 'lastEventAt',
+  lastEventId: 'lastEventId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LightStateScalarFieldEnum = (typeof LightStateScalarFieldEnum)[keyof typeof LightStateScalarFieldEnum]
+
+
+export const AcStateScalarFieldEnum = {
+  id: 'id',
+  deviceId: 'deviceId',
+  isOn: 'isOn',
+  targetTemp: 'targetTemp',
+  mode: 'mode',
+  lastEventAt: 'lastEventAt',
+  lastEventId: 'lastEventId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AcStateScalarFieldEnum = (typeof AcStateScalarFieldEnum)[keyof typeof AcStateScalarFieldEnum]
+
+
+export const HeaterStateScalarFieldEnum = {
+  id: 'id',
+  deviceId: 'deviceId',
+  isOn: 'isOn',
+  targetTemp: 'targetTemp',
+  lastEventAt: 'lastEventAt',
+  lastEventId: 'lastEventId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HeaterStateScalarFieldEnum = (typeof HeaterStateScalarFieldEnum)[keyof typeof HeaterStateScalarFieldEnum]
+
+
+export const SensorStateScalarFieldEnum = {
+  id: 'id',
+  deviceId: 'deviceId',
+  reading: 'reading',
+  unit: 'unit',
+  lastEventAt: 'lastEventAt',
+  lastEventId: 'lastEventId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SensorStateScalarFieldEnum = (typeof SensorStateScalarFieldEnum)[keyof typeof SensorStateScalarFieldEnum]
+
+
+export const EventScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  entityType: 'entityType',
+  source: 'source',
+  eventKind: 'eventKind',
+  deviceId: 'deviceId',
+  deviceType: 'deviceType',
+  commandId: 'commandId',
+  snapshot: 'snapshot',
+  recordedAt: 'recordedAt'
+} as const
+
+export type EventScalarFieldEnum = (typeof EventScalarFieldEnum)[keyof typeof EventScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullsOrder = {
@@ -126,4 +289,91 @@ export const RefreshTokenOrderByRelevanceFieldEnum = {
 } as const
 
 export type RefreshTokenOrderByRelevanceFieldEnum = (typeof RefreshTokenOrderByRelevanceFieldEnum)[keyof typeof RefreshTokenOrderByRelevanceFieldEnum]
+
+
+export const HouseOrderByRelevanceFieldEnum = {
+  publicId: 'publicId',
+  name: 'name',
+  address: 'address'
+} as const
+
+export type HouseOrderByRelevanceFieldEnum = (typeof HouseOrderByRelevanceFieldEnum)[keyof typeof HouseOrderByRelevanceFieldEnum]
+
+
+export const RoomOrderByRelevanceFieldEnum = {
+  publicId: 'publicId',
+  name: 'name',
+  roomType: 'roomType'
+} as const
+
+export type RoomOrderByRelevanceFieldEnum = (typeof RoomOrderByRelevanceFieldEnum)[keyof typeof RoomOrderByRelevanceFieldEnum]
+
+
+export const DeviceOrderByRelevanceFieldEnum = {
+  publicId: 'publicId',
+  name: 'name',
+  deviceType: 'deviceType',
+  manufacturer: 'manufacturer',
+  model: 'model',
+  stateType: 'stateType'
+} as const
+
+export type DeviceOrderByRelevanceFieldEnum = (typeof DeviceOrderByRelevanceFieldEnum)[keyof typeof DeviceOrderByRelevanceFieldEnum]
+
+
+export const CommandOrderByRelevanceFieldEnum = {
+  publicId: 'publicId',
+  status: 'status'
+} as const
+
+export type CommandOrderByRelevanceFieldEnum = (typeof CommandOrderByRelevanceFieldEnum)[keyof typeof CommandOrderByRelevanceFieldEnum]
+
+
+export const CommandTargetOrderByRelevanceFieldEnum = {
+  status: 'status'
+} as const
+
+export type CommandTargetOrderByRelevanceFieldEnum = (typeof CommandTargetOrderByRelevanceFieldEnum)[keyof typeof CommandTargetOrderByRelevanceFieldEnum]
+
+
+export const AcStateOrderByRelevanceFieldEnum = {
+  mode: 'mode'
+} as const
+
+export type AcStateOrderByRelevanceFieldEnum = (typeof AcStateOrderByRelevanceFieldEnum)[keyof typeof AcStateOrderByRelevanceFieldEnum]
+
+
+export const SensorStateOrderByRelevanceFieldEnum = {
+  unit: 'unit'
+} as const
+
+export type SensorStateOrderByRelevanceFieldEnum = (typeof SensorStateOrderByRelevanceFieldEnum)[keyof typeof SensorStateOrderByRelevanceFieldEnum]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const QueryMode = {
+  default: 'default',
+  insensitive: 'insensitive'
+} as const
+
+export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
+export const EventOrderByRelevanceFieldEnum = {
+  eventId: 'eventId',
+  entityType: 'entityType',
+  source: 'source',
+  eventKind: 'eventKind',
+  deviceType: 'deviceType'
+} as const
+
+export type EventOrderByRelevanceFieldEnum = (typeof EventOrderByRelevanceFieldEnum)[keyof typeof EventOrderByRelevanceFieldEnum]
 

@@ -49,3 +49,53 @@ export type User = Prisma.UserModel
  * 
  */
 export type RefreshToken = Prisma.RefreshTokenModel
+/**
+ * Model House
+ * 
+ */
+export type House = Prisma.HouseModel
+/**
+ * Model Room
+ * 
+ */
+export type Room = Prisma.RoomModel
+/**
+ * Model Device
+ * 
+ */
+export type Device = Prisma.DeviceModel
+/**
+ * Model Command
+ * 
+ */
+export type Command = Prisma.CommandModel
+/**
+ * Model CommandTarget
+ * 
+ */
+export type CommandTarget = Prisma.CommandTargetModel
+/**
+ * Model LightState
+ * 
+ */
+export type LightState = Prisma.LightStateModel
+/**
+ * Model AcState
+ * 
+ */
+export type AcState = Prisma.AcStateModel
+/**
+ * Model HeaterState
+ * 
+ */
+export type HeaterState = Prisma.HeaterStateModel
+/**
+ * Model SensorState
+ * 
+ */
+export type SensorState = Prisma.SensorStateModel
+/**
+ * Model Event
+ * 
+ */
+export type Event = Prisma.EventModel
