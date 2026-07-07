@@ -113,7 +113,7 @@ The system always reflects the true current state of the house AND preserves a c
 | Fan-out cap (~200); explicit-id 0-owned → 400; scope 0-match → `no_targets` | Bounds fan-out; distinguishes client error from an empty scope |
 | Command-lifecycle events in the `events` table (`entity_type=command`) | Complete intent→outcome timeline for audit + future AI |
 | Reports flow in via RabbitMQ only (no REST report endpoint) | Exercises the exact path real hardware uses in v2 |
-| BigInt autoincrement internal PKs (all tables) + NanoID `public_id` on user-facing entities; snake_case via `@map`/`@@map`; existing-table rename via hand-authored `ALTER TABLE … RENAME` | Compact 8-byte keys/indexes (esp. the hot append-only `events` table); non-enumerable **external** IDs via `public_id`; consistent naming; no data-loss on rename |
+| BigInt autoincrement internal PKs (all tables) + NanoID `public_id` on user-facing entities; snake_case via `@map`/`@@map`; existing-table rename delivered by hand-editing the still-unpushed `init`/`add_refresh_tokens` migrations in place (not a separate `RENAME TABLE` migration) | Compact 8-byte keys/indexes (esp. the hot append-only `events` table); non-enumerable **external** IDs via `public_id`; consistent naming; while a migration is unpushed, amend it in place rather than stacking a new edit-migration (see Phase 1 VERIFICATION.md override) |
 | RabbitMQ topic exchanges; per consumer queue: main + `*.retry` wait queue (fixed ~30s TTL, dead-letters back to main) + terminal `*.dlq`; `x-death`-bounded retry (~5); `prefetch=1`; API owns topology; worker is a separate process (`npm run worker`) | Wait-queue gives delayed bounded retry that plain requeue cannot; future routing flexibility; clean process boundaries |
 | Boot resilience: env fail-fast; broker background connect; `POST /commands` → 503 when broker down | Don't couple `/auth` availability to the broker |
 | Multi-tenant; soft-delete on User/House/Room/Device; soft-deleted device history stays readable | Correct isolation; deletion hides from listings, not from history |
@@ -137,4 +137,4 @@ Every phase plan opens with a **structure-first, test-first** sequence before im
 **After each milestone:** full review of all sections; re-check Core Value and Out of Scope; update Context with current state.
 
 ---
-*Last updated: 2026-06-30*
+*Last updated: 2026-07-07 — Phase 1 (Schema & Data Conventions) complete*
