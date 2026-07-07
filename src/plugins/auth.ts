@@ -9,7 +9,7 @@ const ACCESS_TOKEN_EXPIRES_MINUTES = 15
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<FastifyReply | undefined>
-    generateTokens: (user: { id: number; email: string; name: string | null }) => Promise<{ accessToken: string; refreshToken: string; expiresAt: string }>
+    generateTokens: (user: { id: bigint; email: string; name: string | null }) => Promise<{ accessToken: string; refreshToken: string; expiresAt: string }>
   }
 }
 
@@ -35,9 +35,13 @@ export default fp(async function (fastify, _opts) {
     await request.jwtVerify()
   })
 
-  fastify.decorate('generateTokens', async function (user: { id: number; email: string; name: string | null }) {
+  fastify.decorate('generateTokens', async function (user: { id: bigint; email: string; name: string | null }) {
     const expiresAt = new Date(Date.now() + ACCESS_TOKEN_EXPIRES_MINUTES * 60 * 1000).toISOString()
-    const accessToken = fastify.jwt.sign({ id: user.id, email: user.email, name: user.name })
+    // Phase-1 minimal choice: Number(user.id) keeps the JWT payload JSON-safe (a raw bigint
+    // throws in JSON.stringify). Safe for current small autoincrement ids; a global
+    // BigInt-serialization strategy (or never exposing internal ids) is deferred to Phase 2
+    // per RESEARCH Open Question 4.
+    const accessToken = fastify.jwt.sign({ id: Number(user.id), email: user.email, name: user.name })
     const refreshToken = await generateRefreshToken(user.id)
     return { accessToken, refreshToken, expiresAt }
   })

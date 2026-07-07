@@ -7,7 +7,7 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
 
-export async function generateRefreshToken(userId: number): Promise<string> {
+export async function generateRefreshToken(userId: bigint): Promise<string> {
   const raw = crypto.randomBytes(40).toString('hex')
   const tokenHash = hashToken(raw)
 
@@ -24,7 +24,7 @@ export async function generateRefreshToken(userId: number): Promise<string> {
 
 export async function verifyRefreshToken(
   raw: string
-): Promise<{ id: number; email: string; name: string | null } | null> {
+): Promise<{ id: bigint; email: string; name: string | null } | null> {
   const tokenHash = hashToken(raw)
 
   const stored = await prisma.refreshToken.findUnique({

@@ -47,7 +47,7 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
     const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
     setRefreshCookie(reply, refreshToken)
 
-    reply.send({ accessToken, expiresAt, user: { id: user.id, email: user.email, name: user.name } })
+    reply.send({ accessToken, expiresAt, user: { id: Number(user.id), email: user.email, name: user.name } })
   })
 
   fastify.post<{ Body: LoginBody }>('/login', {
@@ -62,20 +62,20 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
     const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
     setRefreshCookie(reply, refreshToken)
 
-    reply.send({ accessToken, expiresAt, user: { id: user.id, email: user.email, name: user.name } })
+    reply.send({ accessToken, expiresAt, user: { id: Number(user.id), email: user.email, name: user.name } })
   })
 
   fastify.get('/me', {
     preHandler: fastify.authenticate,
     schema: meRouteSchema
   }, async (request, reply) => {
-    const user = await getUserById(request.user.id)
+    const user = await getUserById(BigInt(request.user.id))
 
     if (!user) {
       throw fastify.httpErrors.notFound('User not found')
     }
 
-    reply.send({ id: user.id, email: user.email, name: user.name })
+    reply.send({ id: Number(user.id), email: user.email, name: user.name })
   })
 
   fastify.post('/refresh', {
@@ -99,7 +99,7 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
     const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
     setRefreshCookie(reply, refreshToken)
 
-    reply.send({ accessToken, expiresAt, user: { id: user.id, email: user.email, name: user.name } })
+    reply.send({ accessToken, expiresAt, user: { id: Number(user.id), email: user.email, name: user.name } })
   })
 
   fastify.post('/logout', {
