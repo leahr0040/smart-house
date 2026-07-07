@@ -94,7 +94,12 @@ const plugin: FastifyPluginAsync = async (fastify, _opts) => {
       throw fastify.httpErrors.unauthorized('Invalid or expired refresh token')
     }
 
-    await revokeRefreshToken(raw)
+    const revoked = await revokeRefreshToken(raw)
+
+    if (!revoked) {
+      clearRefreshCookie(reply)
+      throw fastify.httpErrors.unauthorized('Refresh token already used')
+    }
 
     const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
     setRefreshCookie(reply, refreshToken)
