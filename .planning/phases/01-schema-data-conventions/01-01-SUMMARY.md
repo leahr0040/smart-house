@@ -170,3 +170,12 @@ None - no external service configuration required.
 ---
 *Phase: 01-schema-data-conventions*
 *Completed: 2026-07-07*
+
+## Self-Check: PASSED
+
+- FOUND: .planning/phases/01-schema-data-conventions/01-01-SUMMARY.md
+- FOUND: commit 45cb1b6
+- FOUND: commit 99fccc0
+- FOUND: commit 34badce
+- FOUND: prisma/migrations/20260616152601_init/migration.sql
+- FOUND: prisma/migrations/20260617121303_add_refresh_tokens/migration.sql
