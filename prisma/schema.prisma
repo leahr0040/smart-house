@@ -173,7 +173,7 @@ model SensorState {
 }
 
 model Event {
-  id         BigInt   @id @default(autoincrement()) // ordering/cursor key; target referenced by every state table's last_event_id (D-12)
+  id         BigInt   @id @default(autoincrement()) // ordering/cursor key; the guard-comparison target each state table's tuple guard points at (D-12)
   eventId    String   @unique @map("event_id") @db.Char(36) // separate idempotency key, deterministically minted per effect/report (D-12)
   entityType String   @map("entity_type") // device|command — plain String, TypeBox-validated (D-06)
   source     String
