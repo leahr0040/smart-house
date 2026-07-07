@@ -147,3 +147,12 @@ Phase 1 (Schema & Data Conventions) is now complete — both plans executed:
 ---
 *Phase: 01-schema-data-conventions*
 *Completed: 2026-07-07*
+
+## Self-Check: PASSED
+
+- FOUND: prisma/migrations/20260707094526_add_domain_schema/migration.sql
+- FOUND: .planning/phases/01-schema-data-conventions/01-02-SUMMARY.md
+- FOUND: a656d5b (Task 1 commit)
+- FOUND: 9c0be44 (Task 2 commit)
+- FOUND: 1a7aacb (Task 3 fix commit)
+- FOUND: ddc752c (SUMMARY commit)
