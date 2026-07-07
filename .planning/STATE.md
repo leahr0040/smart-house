@@ -5,14 +5,14 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: schema-data-conventions
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-07-07T08:33:36.254Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-07-07T10:16:30.745Z"
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_plans: 2
+  percent: 13
 ---
 
 # Project State — Smart House
@@ -33,8 +33,8 @@ progress:
 
 **Milestone:** 1 — Event-Driven Smart-Home Platform
 **Phase:** 01 (schema-data-conventions) — EXECUTING
-**Plan:** 1 of 2
-**Status:** Executing Phase 01
+**Plan:** 2 of 2
+**Status:** Ready to execute
 
 ```
 Phase 1 [        ] Not started
@@ -63,6 +63,7 @@ Phase 8 [        ] Not started
 | Blockers | None |
 
 ---
+| Phase 01 P02 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -129,9 +130,9 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-07-01T10:58:52.931Z
-**Stopped at:** Phase 1 context gathered
-**Resume file:** .planning/phases/01-schema-data-conventions/01-CONTEXT.md
+**Last session:** 2026-07-07T10:16:30.733Z
+**Stopped at:** Completed 01-02-PLAN.md
+**Resume file:** None
 
 **To resume:** Read `.planning/ROADMAP.md` Phase 1 detail section and `.planning/PROJECT.md` Constraints to re-establish context, then check which plans under Phase 1 are marked complete in the Progress table.
 
@@ -146,3 +147,9 @@ None.
 - Phase 6 consumer: one MariaDB transaction per report; failure taxonomy enforced by reason via the same retry wait-queue mechanism as Phase 5; idempotency via unique index; tuple guard; first-terminal-wins.
 - Phase 7 event history: MariaDB query on events table only; soft-deleted device history readable; cursor on (recorded_at, event_id).
 - Phase 8 testcontainers: 2 containers (MariaDB + RabbitMQ), shared suite-level fixture, between-test reset; retry wait-queue exhaustion (not hot-spin) is asserted alongside the DLQ/reaper tests.
+
+## Decisions
+
+- [Phase 01]: Ten new domain models added with BigInt autoincrement PKs; public_id (NanoID-shaped VarChar(21)) shaped on House/Room/Device/Command only, generator deferred to Phase 2
+- [Phase 01]: Events table carries a separate ordering BigInt id and idempotency Char(36) event_id (D-12) — never interchanged for ordering or dedup
+- [Phase 01]: No native DB enums/CHECK/min-max anywhere in the new schema; all value/range/vocabulary rules deferred to TypeBox in later phases (D-06)

@@ -10,7 +10,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Schema & Data Conventions** - Complete Prisma schema including the append-only events table (with entity_type + nullable device_id for command-lifecycle rows); snake_case @@map; soft-delete; BigInt autoincrement PKs + NanoID public_id (non-enumerable external IDs); user_id denormalization; polymorphic morph tables; last_event_id (BigInt) column for tuple guard
+- [x] **Phase 1: Schema & Data Conventions** - Complete Prisma schema including the append-only events table (with entity_type + nullable device_id for command-lifecycle rows); snake_case @@map; soft-delete; BigInt autoincrement PKs + NanoID public_id (non-enumerable external IDs); user_id denormalization; polymorphic morph tables; last_event_id (BigInt) column for tuple guard (completed 2026-07-07)
 - [ ] **Phase 2: Entity CRUD & Multi-Tenancy** - House/Room/Device CRUD routes and services; ownership-embedded queries; multi-tenancy enforcement; soft-delete filters; auth boundary; eager state detail row at device creation
 - [ ] **Phase 3: Messaging Infrastructure** - RabbitMQ singleton and Fastify plugin; topic exchange topology provisioned on boot — per consumer queue (device_effects, device_reports): main queue, `*.retry` wait queue (TTL backoff, dead-letters back to main), terminal `*.dlq`; background connect (no startup block); 503 degradation for POST /commands when broker down; auth/CRUD/state/event reads (all MariaDB) unaffected
 - [ ] **Phase 4: Command Handler & Dispatcher** - Two-tier validation (acceptance sync → 400 including action↔type for explicit-device-id selectors; all device-type business logic → type validation async); TypeBox action schemas; selector resolution; persist-then-publish (one transaction, fan-out cap ~200); command status received/pending/done/partially_failed/failed; command-lifecycle events emitted (received/resolved/rejected); CMD-08 type validation async contract; background reaper
@@ -44,14 +44,14 @@
 - Compile + migration smoke-check (NOT TDD-red): this phase has no runnable application logic to test red. The acceptance bar is `prisma migrate dev` exits 0, `npm run build` compiles clean, `npm test` passes existing auth tests. Do NOT dress a compile check up as a failing test.
 - Implement: write migrations; rename existing tables (hand-verify RENAME TABLE in generated SQL); add new models and columns including the `events` table with `entity_type` and nullable `device_id`; confirm the NanoID public_id generation seam (app-side; the `@unique` column is shaped here, the generator lands in Phase 2); regenerate Prisma client; confirm build and existing tests still pass.
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans complete
 **Wave 1**
 
 - [x] 01-01-PLAN.md — Existing-tables migration: `User`→`users` rename + `deleted_at` + Int→BigInt widen of `User`/`RefreshToken`, in ONE hand-verified migration, plus auth-layer bigint handling (Wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Additive migration: all 10 new tables (BigInt PKs, NanoID `public_id` on user-facing entities, dual-id `events`) + full acceptance gate (Wave 2)
+- [x] 01-02-PLAN.md — Additive migration: all 10 new tables (BigInt PKs, NanoID `public_id` on user-facing entities, dual-id `events`) + full acceptance gate (Wave 2)
 
 ---
 
@@ -236,7 +236,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema & Data Conventions | 1/2 | In Progress|  |
+| 1. Schema & Data Conventions | 2/2 | Complete   | 2026-07-07 |
 | 2. Entity CRUD & Multi-Tenancy | 0/0 | Not started | - |
 | 3. Messaging Infrastructure | 0/0 | Not started | - |
 | 4. Command Handler & Dispatcher | 0/0 | Not started | - |

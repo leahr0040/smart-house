@@ -67,10 +67,10 @@ The event-driven smart-home platform milestone, built on the existing Fastify 5 
 
 ### Data Conventions
 
-- [ ] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models. The existing-table rename uses a **hand-authored `ALTER TABLE … RENAME` migration** (not a generated diff)
-- [ ] **DATA-02**: `user_id` is denormalized onto Room, Device, and Command; ownership checks use it directly (no joins through the hierarchy), including `GET /commands/:id`
-- [ ] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
-- [ ] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state writes use a tuple-guarded `UPDATE`; event idempotency via a **MariaDB unique index on the deterministic `event_id`**; target transitions are compare-and-set; the roll-up runs under a `SELECT … FOR UPDATE` on the command. The report consumer runs these as **one MariaDB transaction**
+- [x] **DATA-01**: All DB tables/columns use snake_case via Prisma `@map`/`@@map`, including existing `User` and `RefreshToken` models. The existing-table rename uses a **hand-authored `ALTER TABLE … RENAME` migration** (not a generated diff)
+- [x] **DATA-02**: `user_id` is denormalized onto Room, Device, and Command; ownership checks use it directly (no joins through the hierarchy), including `GET /commands/:id`
+- [x] **DATA-03**: Soft delete (`deleted_at`) on User, House, Room, Device; all reads exclude soft-deleted rows; a soft-deleted user cannot authenticate
+- [x] **DATA-04**: Multi-device operations use batched `IN` queries (no N+1); current-state writes use a tuple-guarded `UPDATE`; event idempotency via a **MariaDB unique index on the deterministic `event_id`**; target transitions are compare-and-set; the roll-up runs under a `SELECT … FOR UPDATE` on the command. The report consumer runs these as **one MariaDB transaction**
 
 ### Testing
 
@@ -140,10 +140,10 @@ Tests use the existing convention: `node:test` + `node:assert`, the `build(t)` h
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
-| DATA-04 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Complete |
+| DATA-02 | Phase 1 | Complete |
+| DATA-03 | Phase 1 | Complete |
+| DATA-04 | Phase 1 | Complete |
 | HOUSE-01 | Phase 2 | Pending |
 | HOUSE-02 | Phase 2 | Pending |
 | HOUSE-03 | Phase 2 | Pending |
