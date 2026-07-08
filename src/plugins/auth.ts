@@ -41,6 +41,11 @@ export default fp(async function (fastify, _opts) {
     // throws in JSON.stringify). Safe for current small autoincrement ids; a global
     // BigInt-serialization strategy (or never exposing internal ids) is deferred to Phase 2
     // per RESEARCH Open Question 4.
+    // Guard the deferred assumption: fail loudly rather than silently rounding an id that
+    // exceeds JS safe-integer range, which would otherwise mint a token for the wrong user.
+    if (user.id > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error(`user id ${user.id} exceeds safe JS integer range for JWT encoding`)
+    }
     const accessToken = fastify.jwt.sign({ id: Number(user.id), email: user.email, name: user.name })
     const refreshToken = await generateRefreshToken(user.id)
     return { accessToken, refreshToken, expiresAt }
