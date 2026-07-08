@@ -25,7 +25,7 @@ progress:
 
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event — so nothing about the home's behavior is ever lost.
 
-**Current Focus:** Phase 01 — schema-data-conventions
+**Current Focus:** Phase 02 — Entity CRUD & Multi-Tenancy
 
 ---
 
@@ -37,17 +37,17 @@ progress:
 **Status:** Ready to plan
 
 ```
-Phase 1 [        ] Not started
-Phase 2 [        ] Not started
-Phase 3 [        ] Not started
-Phase 4 [        ] Not started
-Phase 5 [        ] Not started
-Phase 6 [        ] Not started
-Phase 7 [        ] Not started
-Phase 8 [        ] Not started
+Phase 1 [x] Complete
+Phase 2 [ ] Ready to plan
+Phase 3 [ ] Not started
+Phase 4 [ ] Not started
+Phase 5 [ ] Not started
+Phase 6 [ ] Not started
+Phase 7 [ ] Not started
+Phase 8 [ ] Not started
 ```
 
-**Overall:** 0 / 8 phases complete
+**Overall:** 1 / 8 phases complete
 
 ---
 
@@ -56,10 +56,10 @@ Phase 8 [        ] Not started
 | Metric | Value |
 |--------|-------|
 | Phases total | 8 |
-| Phases complete | 0 |
+| Phases complete | 1 |
 | Requirements total | 49 |
-| Requirements delivered | 0 |
-| Plans complete | 0 |
+| Requirements delivered | 4 (DATA-01..04) |
+| Plans complete | 2 |
 | Blockers | None |
 
 ---
@@ -106,20 +106,18 @@ Phase 8 [        ] Not started
 
 ### Next Step
 
-Plan and execute **Phase 1: Schema & Data Conventions.**
+Discuss and plan **Phase 2: Entity CRUD & Multi-Tenancy** (no CONTEXT.md yet).
 
-Start with:
+Start with `/gsd-discuss-phase 2` to gather context, then `/gsd-plan-phase 2`. Carried forward from Phase 1:
 
-1. Conduct the uuid-v7 storage spike (`BINARY(16)` vs `CHAR(36)`) and document the decision as a schema comment or ADR note.
-2. Add all new Prisma models to `prisma/schema.prisma` (House, Room, Device, Command, CommandTarget, per-type state detail tables, Event). The `events` model must include `entity_type` + nullable `device_id` from day one.
-3. Hand-author the rename migration for `users` and `refresh_tokens`; verify the generated SQL emits `RENAME TABLE`, not DROP+CREATE.
-4. Run `prisma migrate dev`, `npm run build`, `npm test` — all must exit 0.
+1. Routes must expose `public_id`, never the internal BigInt `id` (T-01-04 residual control; RESEARCH Open Question 4).
+2. Decide the global BigInt-serialization strategy when domain models are first returned in HTTP responses (toJSON shim vs Prisma result extension vs public_id-only).
+3. Implement the NanoID `public_id` generation seam (Prisma `$extends` on create for House/Room/Device/Command) — Phase 1 only shaped the column.
 
 ### Todos
 
-- [ ] Plan Phase 1: Schema & Data Conventions
-- [ ] Conduct uuid-v7-storage spike (BINARY(16) vs CHAR(36); confirm Prisma MariaDB adapter emits v7 not v4); record decision before migrations are finalized
-- [ ] Hand-verify rename migration SQL emits `RENAME TABLE` (not DROP+CREATE) for existing User/RefreshToken tables
+- [x] Plan & execute Phase 1: Schema & Data Conventions
+- [ ] Phase 2: expose `public_id` not internal `id`; wire NanoID generation seam; settle BigInt-serialization strategy
 - [ ] Add `RABBITMQ_URL` to `.env.example` during Phase 3
 
 ### Blockers
@@ -130,11 +128,11 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-07-07T10:16:30.733Z
-**Stopped at:** Completed 01-02-PLAN.md
+**Last session:** 2026-07-08T20:21:07Z
+**Stopped at:** Phase 1 complete — UAT (7/7 passed) and security (threats_open: 0) verified; ready to plan Phase 2
 **Resume file:** None
 
-**To resume:** Read `.planning/ROADMAP.md` Phase 1 detail section and `.planning/PROJECT.md` Constraints to re-establish context, then check which plans under Phase 1 are marked complete in the Progress table.
+**To resume:** Read `.planning/ROADMAP.md` Phase 2 detail section and `.planning/PROJECT.md` Constraints to re-establish context. Phase 2 has no CONTEXT.md yet — start with `/gsd-discuss-phase 2`.
 
 **Key orientation points for the next session:**
 
