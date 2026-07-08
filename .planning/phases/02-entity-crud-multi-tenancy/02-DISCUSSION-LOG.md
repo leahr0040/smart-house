@@ -26,12 +26,12 @@
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| Bare array, no pagination | Return [ ...items ] directly. Simplest, YAGNI. | |
+| Bare array, no pagination | Return [ ...items ] directly. Simplest, YAGNI. | ✓ |
 | Envelope, no pagination | { data: [...] } for forward compatibility. | |
-| Envelope + pagination now | { data: [...], nextCursor } cursor-paginated, consistent with Phase 7. | ✓ |
+| Envelope + pagination now | { data: [...], nextCursor } cursor-paginated, consistent with Phase 7. | |
 
-**User's choice:** Envelope + pagination now
-**Notes:** Chosen for consistency with the Phase 7 event-history read pattern. Cursor key `(created_at, id)` flagged as a researcher/planner detail (CRUD collections have no `recorded_at`).
+**User's choice:** Bare array, no pagination *(revised 2026-07-09 — user reversed the initial "envelope + pagination now" choice; pagination is unnecessary for this phase)*
+**Notes:** Small CRUD collections don't warrant pagination. Phase 7 event history remains the paginated read pattern. Adding an envelope later is non-breaking.
 
 ---
 

@@ -24,7 +24,7 @@ Most of the ownership/soft-delete/auth machinery is already locked by project do
   - Devices: `POST /rooms/:roomPublicId/devices`, plus **two list views** required by success criteria — `GET /rooms/:roomPublicId/devices` and `GET /houses/:housePublicId/devices` — and `GET/PATCH/DELETE /devices/:devicePublicId`.
   - Not fully nested (no `/houses/:h/rooms/:r/devices/:d`) — ownership is enforced by `user_id`, so full ancestry in the path is redundant.
 
-- **D-02 (list response = cursor-paginated envelope):** Every list endpoint returns `{ data: [...], nextCursor }`. Cursor pagination applies now (not deferred), for consistency with the Phase 7 read pattern. Cursor key: `(created_at, id)` — **researcher/planner to confirm exact encoding**; CRUD collections have no `recorded_at`, unlike the Phase 7 events read.
+- **D-02 (list response = bare array, no pagination):** List endpoints return the items directly (`[ ...items ]`) — no envelope, no pagination. House/room/device collections are small in v1; pagination is unwarranted (YAGNI). The Phase 7 event-history read is the paginated pattern; CRUD lists deliberately stay simple. Adding a `{ data, nextCursor }` envelope later is a non-breaking change if a real client ever needs it.
 
 ### Resource identifiers
 - **D-03 (public_id everywhere):** Route paths and JSON responses use the NanoID `public_id`; the internal `BigInt` id is **never** exposed. Services resolve `{ publicId, userId }` → internal row. This realizes PROJECT.md's non-enumerable-external-id design and sidesteps BigInt-JSON serialization entirely (contrast the existing auth routes, which leak `Number(user.id)` — do not copy that on new routes).
@@ -46,7 +46,6 @@ Most of the ownership/soft-delete/auth machinery is already locked by project do
 - **TypeBox introduction** — TypeBox is the mandated validation standard (CLAUDE.md / PLAN.md rule 1.5) but is **not yet a dependency** (`zod` is the only validator installed today). Phase 2 adds `@sinclair/typebox` + the Fastify TypeBox type-provider and writes all new schemas with it (`Static<typeof schema>`), per project rule. Do not migrate the legacy auth `as const` schemas unless touched.
 - **Field validation limits** — name lengths, `floor` range, `brightness` 0–100, `target_temp` bounds, `ac_states.mode` vocabulary, sensor `unit` — all live in the TypeBox app layer (no DB constraints, per Phase 1 D-01…D-06). Pick sensible defaults.
 - **Eager state-row defaults** — the Phase 1 schema defaults (`is_on=false`, `brightness=0`, etc.; `ac_states.mode` and `sensor_states.reading`/`unit` have no schema default) need concrete creation-time values; choose sane ones.
-- **Cursor pagination encoding / page size** — encoding of the `(created_at, id)` cursor and default/max page size.
 - **BigInt serialization strategy** — since responses expose only `public_id`, internal BigInt ids should never reach the serializer; confirm no BigInt leaks into any response schema.
 
 </decisions>
