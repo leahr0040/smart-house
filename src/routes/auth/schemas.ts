@@ -31,9 +31,9 @@ export const registerRouteSchema = {
     type: 'object',
     required: ['email', 'password'],
     properties: {
-      email: { type: 'string', format: 'email' },
+      email: { type: 'string', format: 'email', maxLength: 191 },
       password: { type: 'string', minLength: 6 },
-      name: { type: 'string' }
+      name: { type: 'string', maxLength: 191 }
     }
   },
   response: {
@@ -46,7 +46,7 @@ export const loginRouteSchema = {
     type: 'object',
     required: ['email', 'password'],
     properties: {
-      email: { type: 'string', format: 'email' },
+      email: { type: 'string', format: 'email', maxLength: 191 },
       password: { type: 'string' }
     }
   },
