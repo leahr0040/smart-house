@@ -16,7 +16,7 @@ declare module 'fastify' {
 declare module '@fastify/jwt' {
   interface FastifyJWT {
     user: {
-      id: number
+      id: string
       email: string
       name: string | null
     }
@@ -37,16 +37,10 @@ export default fp(async function (fastify, _opts) {
 
   fastify.decorate('generateTokens', async function (user: { id: bigint; email: string; name: string | null }) {
     const expiresAt = new Date(Date.now() + ACCESS_TOKEN_EXPIRES_MINUTES * 60 * 1000).toISOString()
-    // Phase-1 minimal choice: Number(user.id) keeps the JWT payload JSON-safe (a raw bigint
-    // throws in JSON.stringify). Safe for current small autoincrement ids; a global
-    // BigInt-serialization strategy (or never exposing internal ids) is deferred to Phase 2
-    // per RESEARCH Open Question 4.
-    // Guard the deferred assumption: fail loudly rather than silently rounding an id that
-    // exceeds JS safe-integer range, which would otherwise mint a token for the wrong user.
-    if (user.id > BigInt(Number.MAX_SAFE_INTEGER)) {
-      throw new Error(`user id ${user.id} exceeds safe JS integer range for JWT encoding`)
-    }
-    const accessToken = fastify.jwt.sign({ id: Number(user.id), email: user.email, name: user.name })
+    // The id is a bigint; carry it as a string across the JWT boundary. A raw bigint throws in
+    // JSON.stringify, and Number(id) would silently round past 2^53 and mint a token for the wrong
+    // user. A string round-trips exactly (read side does BigInt(request.user.id)).
+    const accessToken = fastify.jwt.sign({ id: user.id.toString(), email: user.email, name: user.name })
     const refreshToken = await generateRefreshToken(user.id)
     return { accessToken, refreshToken, expiresAt }
   })
