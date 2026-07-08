@@ -32,7 +32,7 @@ export async function verifyRefreshToken(
     include: { user: true }
   })
 
-  if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
+  if (!stored || stored.revokedAt || stored.expiresAt < new Date() || stored.user.deletedAt) {
     return null
   }
 

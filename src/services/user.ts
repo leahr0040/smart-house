@@ -20,7 +20,7 @@ export async function createUser(input: CreateUserInput) {
 
 export async function getUserById(id: bigint) {
   return prisma.user.findUnique({
-    where: { id },
+    where: { id, deletedAt: null },
     select: { id: true, email: true, name: true }
   })
 }

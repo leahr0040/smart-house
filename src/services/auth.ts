@@ -11,7 +11,7 @@ export async function loginUser(input: LoginUserInput) {
     where: { email: input.email }
   })
 
-  if (!user) {
+  if (!user || user.deletedAt) {
     return null
   }
 
