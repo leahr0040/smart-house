@@ -39,6 +39,7 @@ CREATE TABLE `devices` (
     `public_id` VARCHAR(21) NOT NULL,
     `user_id` BIGINT NOT NULL,
     `room_id` BIGINT NOT NULL,
+    `house_id` BIGINT NOT NULL,
     `name` VARCHAR(191) NOT NULL,
     `device_type` VARCHAR(191) NOT NULL,
     `manufacturer` VARCHAR(191) NULL,
@@ -52,6 +53,7 @@ CREATE TABLE `devices` (
     UNIQUE INDEX `devices_public_id_key`(`public_id`),
     INDEX `devices_user_id_idx`(`user_id`),
     INDEX `devices_room_id_idx`(`room_id`),
+    INDEX `devices_house_id_idx`(`house_id`),
     INDEX `devices_state_id_idx`(`state_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

@@ -74,6 +74,7 @@ model Device {
   publicId     String    @unique @map("public_id") @db.VarChar(21)
   userId       BigInt    @map("user_id") // denormalized (DATA-02) — ownership checks never join through the hierarchy
   roomId       BigInt    @map("room_id")
+  houseId      BigInt    @map("house_id") // denormalized (DATA-02) — list-by-house never joins through rooms
   name         String
   deviceType   String    @map("device_type") // validated in TypeBox, not a DB enum (D-06)
   manufacturer String?
@@ -87,6 +88,7 @@ model Device {
   @@map("devices")
   @@index([userId])
   @@index([roomId])
+  @@index([houseId])
   @@index([stateId])
 }
 

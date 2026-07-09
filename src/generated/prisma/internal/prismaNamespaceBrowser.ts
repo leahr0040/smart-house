@@ -141,6 +141,7 @@ export const DeviceScalarFieldEnum = {
   publicId: 'publicId',
   userId: 'userId',
   roomId: 'roomId',
+  houseId: 'houseId',
   name: 'name',
   deviceType: 'deviceType',
   manufacturer: 'manufacturer',

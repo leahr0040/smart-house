@@ -30,6 +30,7 @@ export type DeviceAvgAggregateOutputType = {
   id: number | null
   userId: number | null
   roomId: number | null
+  houseId: number | null
   stateId: number | null
 }
 
@@ -37,6 +38,7 @@ export type DeviceSumAggregateOutputType = {
   id: bigint | null
   userId: bigint | null
   roomId: bigint | null
+  houseId: bigint | null
   stateId: bigint | null
 }
 
@@ -45,6 +47,7 @@ export type DeviceMinAggregateOutputType = {
   publicId: string | null
   userId: bigint | null
   roomId: bigint | null
+  houseId: bigint | null
   name: string | null
   deviceType: string | null
   manufacturer: string | null
@@ -61,6 +64,7 @@ export type DeviceMaxAggregateOutputType = {
   publicId: string | null
   userId: bigint | null
   roomId: bigint | null
+  houseId: bigint | null
   name: string | null
   deviceType: string | null
   manufacturer: string | null
@@ -77,6 +81,7 @@ export type DeviceCountAggregateOutputType = {
   publicId: number
   userId: number
   roomId: number
+  houseId: number
   name: number
   deviceType: number
   manufacturer: number
@@ -94,6 +99,7 @@ export type DeviceAvgAggregateInputType = {
   id?: true
   userId?: true
   roomId?: true
+  houseId?: true
   stateId?: true
 }
 
@@ -101,6 +107,7 @@ export type DeviceSumAggregateInputType = {
   id?: true
   userId?: true
   roomId?: true
+  houseId?: true
   stateId?: true
 }
 
@@ -109,6 +116,7 @@ export type DeviceMinAggregateInputType = {
   publicId?: true
   userId?: true
   roomId?: true
+  houseId?: true
   name?: true
   deviceType?: true
   manufacturer?: true
@@ -125,6 +133,7 @@ export type DeviceMaxAggregateInputType = {
   publicId?: true
   userId?: true
   roomId?: true
+  houseId?: true
   name?: true
   deviceType?: true
   manufacturer?: true
@@ -141,6 +150,7 @@ export type DeviceCountAggregateInputType = {
   publicId?: true
   userId?: true
   roomId?: true
+  houseId?: true
   name?: true
   deviceType?: true
   manufacturer?: true
@@ -244,6 +254,7 @@ export type DeviceGroupByOutputType = {
   publicId: string
   userId: bigint
   roomId: bigint
+  houseId: bigint
   name: string
   deviceType: string
   manufacturer: string | null
@@ -283,6 +294,7 @@ export type DeviceWhereInput = {
   publicId?: Prisma.StringFilter<"Device"> | string
   userId?: Prisma.BigIntFilter<"Device"> | bigint | number
   roomId?: Prisma.BigIntFilter<"Device"> | bigint | number
+  houseId?: Prisma.BigIntFilter<"Device"> | bigint | number
   name?: Prisma.StringFilter<"Device"> | string
   deviceType?: Prisma.StringFilter<"Device"> | string
   manufacturer?: Prisma.StringNullableFilter<"Device"> | string | null
@@ -299,6 +311,7 @@ export type DeviceOrderByWithRelationInput = {
   publicId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
+  houseId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -319,6 +332,7 @@ export type DeviceWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.DeviceWhereInput | Prisma.DeviceWhereInput[]
   userId?: Prisma.BigIntFilter<"Device"> | bigint | number
   roomId?: Prisma.BigIntFilter<"Device"> | bigint | number
+  houseId?: Prisma.BigIntFilter<"Device"> | bigint | number
   name?: Prisma.StringFilter<"Device"> | string
   deviceType?: Prisma.StringFilter<"Device"> | string
   manufacturer?: Prisma.StringNullableFilter<"Device"> | string | null
@@ -335,6 +349,7 @@ export type DeviceOrderByWithAggregationInput = {
   publicId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
+  houseId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -359,6 +374,7 @@ export type DeviceScalarWhereWithAggregatesInput = {
   publicId?: Prisma.StringWithAggregatesFilter<"Device"> | string
   userId?: Prisma.BigIntWithAggregatesFilter<"Device"> | bigint | number
   roomId?: Prisma.BigIntWithAggregatesFilter<"Device"> | bigint | number
+  houseId?: Prisma.BigIntWithAggregatesFilter<"Device"> | bigint | number
   name?: Prisma.StringWithAggregatesFilter<"Device"> | string
   deviceType?: Prisma.StringWithAggregatesFilter<"Device"> | string
   manufacturer?: Prisma.StringNullableWithAggregatesFilter<"Device"> | string | null
@@ -375,6 +391,7 @@ export type DeviceCreateInput = {
   publicId: string
   userId: bigint | number
   roomId: bigint | number
+  houseId: bigint | number
   name: string
   deviceType: string
   manufacturer?: string | null
@@ -391,6 +408,7 @@ export type DeviceUncheckedCreateInput = {
   publicId: string
   userId: bigint | number
   roomId: bigint | number
+  houseId: bigint | number
   name: string
   deviceType: string
   manufacturer?: string | null
@@ -407,6 +425,7 @@ export type DeviceUpdateInput = {
   publicId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -423,6 +442,7 @@ export type DeviceUncheckedUpdateInput = {
   publicId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -439,6 +459,7 @@ export type DeviceCreateManyInput = {
   publicId: string
   userId: bigint | number
   roomId: bigint | number
+  houseId: bigint | number
   name: string
   deviceType: string
   manufacturer?: string | null
@@ -455,6 +476,7 @@ export type DeviceUpdateManyMutationInput = {
   publicId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -471,6 +493,7 @@ export type DeviceUncheckedUpdateManyInput = {
   publicId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -493,6 +516,7 @@ export type DeviceCountOrderByAggregateInput = {
   publicId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
+  houseId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrder
@@ -508,6 +532,7 @@ export type DeviceAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
+  houseId?: Prisma.SortOrder
   stateId?: Prisma.SortOrder
 }
 
@@ -516,6 +541,7 @@ export type DeviceMaxOrderByAggregateInput = {
   publicId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
+  houseId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrder
@@ -532,6 +558,7 @@ export type DeviceMinOrderByAggregateInput = {
   publicId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
+  houseId?: Prisma.SortOrder
   name?: Prisma.SortOrder
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrder
@@ -547,6 +574,7 @@ export type DeviceSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
+  houseId?: Prisma.SortOrder
   stateId?: Prisma.SortOrder
 }
 
@@ -565,6 +593,7 @@ export type DeviceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   publicId?: boolean
   userId?: boolean
   roomId?: boolean
+  houseId?: boolean
   name?: boolean
   deviceType?: boolean
   manufacturer?: boolean
@@ -583,6 +612,7 @@ export type DeviceSelectScalar = {
   publicId?: boolean
   userId?: boolean
   roomId?: boolean
+  houseId?: boolean
   name?: boolean
   deviceType?: boolean
   manufacturer?: boolean
@@ -594,7 +624,7 @@ export type DeviceSelectScalar = {
   updatedAt?: boolean
 }
 
-export type DeviceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicId" | "userId" | "roomId" | "name" | "deviceType" | "manufacturer" | "model" | "stateType" | "stateId" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["device"]>
+export type DeviceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicId" | "userId" | "roomId" | "houseId" | "name" | "deviceType" | "manufacturer" | "model" | "stateType" | "stateId" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["device"]>
 
 export type $DevicePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Device"
@@ -604,6 +634,7 @@ export type $DevicePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     publicId: string
     userId: bigint
     roomId: bigint
+    houseId: bigint
     name: string
     deviceType: string
     manufacturer: string | null
@@ -986,6 +1017,7 @@ export interface DeviceFieldRefs {
   readonly publicId: Prisma.FieldRef<"Device", 'String'>
   readonly userId: Prisma.FieldRef<"Device", 'BigInt'>
   readonly roomId: Prisma.FieldRef<"Device", 'BigInt'>
+  readonly houseId: Prisma.FieldRef<"Device", 'BigInt'>
   readonly name: Prisma.FieldRef<"Device", 'String'>
   readonly deviceType: Prisma.FieldRef<"Device", 'String'>
   readonly manufacturer: Prisma.FieldRef<"Device", 'String'>
