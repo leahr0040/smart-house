@@ -88,7 +88,7 @@ Most of the ownership/soft-delete/auth machinery is already locked by project do
 ### Established Patterns
 - **Service layer:** pure functions in `src/services/` talk to Prisma; routes call services (`src/services/house.ts`, `room.ts`, `device.ts` per ROADMAP scaffold notes). Ownership queries embed `where: { publicId, userId }` — never join through the hierarchy (DATA-02).
 - **relationMode = "prisma"** — no real FK constraints; morph back-links and denormalized `user_id`/`house_id` are plain columns. Cascade must be done in application code (no DB ON DELETE CASCADE).
-- **Device carries denormalized `house_id`** (`@@index([houseId])`, added in Phase 2) — `GET /houses/:housePublicId/devices` and the house→device cascade both query `houseId` directly, never joining through rooms (DATA-02 spirit). ⚠ This is an **additive schema change on top of the "locked" Phase 1 schema** — Phase 2 must ship the migration + `prisma generate` for it.
+- **Device carries denormalized `house_id`** (`@@index([houseId])`) — `GET /houses/:housePublicId/devices` and the house→device cascade both query `houseId` directly, never joining through rooms (DATA-02 spirit). Folded **in place** into the still-unpushed `20260707094526_add_domain_schema` migration (per the amend-unpushed-migration convention — not a new stacked migration); `schema.prisma` and the migration SQL already carry the column + index. Phase 2 still needs `prisma generate` (regenerate the client) and a dev-DB re-apply/reset so the generated `Device` type and live table include `house_id`.
 - **Cross-tenant → 404 not 403** — an ownership-scoped read that matches nothing yields `notFound`, never `forbidden` (don't reveal existence).
 
 ### Integration Points
