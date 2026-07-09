@@ -37,7 +37,7 @@ Most of the ownership/soft-delete/auth machinery is already locked by project do
 
 ### Soft-delete cascade
 - **D-07 (cascade soft-delete):** Deleting a house soft-deletes all its rooms **and** devices; deleting a room soft-deletes its devices — in **one transaction**. Because routes expose items at top level (`GET /devices/:id`), a non-cascading delete would leave a live-looking orphan device reachable directly; cascade makes children vanish from every read consistently.
-  - Implementation seam: the Phase 1 Prisma `$extends` turns `delete`/`deleteMany` into soft-delete `updateMany` for soft-deletable models. Cascade = explicit `deleteMany` on children inside a transaction (e.g. delete house → collect its room ids → `device.deleteMany({ where: { roomId: { in: [...] } } })` then `room.deleteMany({ where: { houseId } })` then the house). Devices carry `roomId` + `userId` but **not** `houseId`, so the house→device cascade must go through the room ids.
+  - Implementation seam: the Phase 1 Prisma `$extends` turns `delete`/`deleteMany` into soft-delete `updateMany` for soft-deletable models. Cascade = explicit `deleteMany` on children inside a transaction. **Device now carries a denormalized `house_id`** (added to the schema in Phase 2), so the house→device cascade is a **direct** `device.deleteMany({ where: { houseId } })` — no join through room ids. Delete house → `device.deleteMany({ where: { houseId } })`, `room.deleteMany({ where: { houseId } })`, then the house; delete room → `device.deleteMany({ where: { roomId } })`, then the room.
   - Compatible with Phase 7: a soft-deleted device's event history stays readable there because that read deliberately bypasses the `deletedAt` guard.
   - Per-type state rows are internal-only (not soft-deletable) — they simply remain; the device row is the access gate, so no orphan is reachable.
 
@@ -87,7 +87,8 @@ Most of the ownership/soft-delete/auth machinery is already locked by project do
 
 ### Established Patterns
 - **Service layer:** pure functions in `src/services/` talk to Prisma; routes call services (`src/services/house.ts`, `room.ts`, `device.ts` per ROADMAP scaffold notes). Ownership queries embed `where: { publicId, userId }` — never join through the hierarchy (DATA-02).
-- **relationMode = "prisma"** — no real FK constraints; morph back-links and denormalized `user_id` are plain columns. Cascade must be done in application code (no DB ON DELETE CASCADE).
+- **relationMode = "prisma"** — no real FK constraints; morph back-links and denormalized `user_id`/`house_id` are plain columns. Cascade must be done in application code (no DB ON DELETE CASCADE).
+- **Device carries denormalized `house_id`** (`@@index([houseId])`, added in Phase 2) — `GET /houses/:housePublicId/devices` and the house→device cascade both query `houseId` directly, never joining through rooms (DATA-02 spirit). ⚠ This is an **additive schema change on top of the "locked" Phase 1 schema** — Phase 2 must ship the migration + `prisma generate` for it.
 - **Cross-tenant → 404 not 403** — an ownership-scoped read that matches nothing yields `notFound`, never `forbidden` (don't reveal existence).
 
 ### Integration Points
