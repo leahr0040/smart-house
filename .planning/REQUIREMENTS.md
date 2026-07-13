@@ -80,7 +80,7 @@ Tests use the existing convention: `node:test` + `node:assert`, the `build(t)` h
 - [ ] **TEST-02**: Command→event round-trip — a command produces effects, the worker reports, an event is appended, and current state updates
 - [ ] **TEST-03**: Idempotency — a redelivered effect/report yields exactly one event (deterministic `event_id`) and does not corrupt current state
 - [ ] **TEST-04**: DLQ — a poison message is dead-lettered rather than retried forever
-- [ ] **TEST-05**: Soft-delete — soft-deleted rows excluded from all reads; a soft-deleted user cannot authenticate
+- [x] **TEST-05**: Soft-delete — soft-deleted rows excluded from all reads; a soft-deleted user cannot authenticate
 - [ ] **TEST-06**: Projection rebuild — current state can be rebuilt from the event log (validates EVENT-06)
 - [ ] **TEST-07**: Acceptance/type validation — a malformed request → 400; an explicit-id action↔type mismatch → 400
 - [ ] **TEST-08**: Auth boundary — every new endpoint returns 401 without a valid token
@@ -160,7 +160,7 @@ Tests use the existing convention: `node:test` + `node:assert`, the `build(t)` h
 | DEV-05 | Phase 2 | Pending |
 | STATE-01 | Phase 2 | Pending |
 | TEST-01 | Phase 2 | Pending |
-| TEST-05 | Phase 2 | Pending |
+| TEST-05 | Phase 2 | Complete |
 | TEST-08 | Phase 2 | Pending |
 | MSG-01 | Phase 3 | Pending |
 | CMD-01 | Phase 4 | Pending |

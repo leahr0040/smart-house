@@ -77,11 +77,11 @@
 - Tests (red): per-endpoint unit tests via `app.inject()`; second-user 404 fixture for every ownership-sensitive route; soft-delete exclusion tests; 401 boundary tests; eager-state-row creation test (device created → state detail row exists with defaults); `npm run build && npm test` must compile and run red.
 - Implement: service functions with ownership-embedded Prisma queries (`where: { id, userId }`); device creation service creates state detail row in the same transaction; batched `IN` for multi-device list; soft-delete filters on all reads; route handlers calling services.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Toolchain & public_id seam: install TypeBox/NanoID, regenerate Prisma client + re-apply dev DB (house_id), public_id create hook, test fixtures + soft-deleted-user-cannot-login test (Wave 1)
+- [x] 02-01-PLAN.md — Toolchain & public_id seam: install TypeBox/NanoID, regenerate Prisma client + re-apply dev DB (house_id), public_id create hook, test fixtures + soft-deleted-user-cannot-login test (Wave 1)
 
 **Wave 2** *(parallel — disjoint files; each depends on 02-01)*
 
@@ -247,7 +247,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema & Data Conventions | 2/2 | Complete    | 2026-07-07 |
-| 2. Entity CRUD & Multi-Tenancy | 0/0 | Not started | - |
+| 2. Entity CRUD & Multi-Tenancy | 1/4 | In Progress|  |
 | 3. Messaging Infrastructure | 0/0 | Not started | - |
 | 4. Command Handler & Dispatcher | 0/0 | Not started | - |
 | 5. Simulated Device Worker | 0/0 | Not started | - |

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Entity CRUD & Multi-Tenancy
+current_phase: 02
+current_phase_name: entity-crud-multi-tenancy
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-07-09T14:06:55.668Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-07-13T20:50:32.393Z"
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 6
+  completed_plans: 3
   percent: 13
 ---
 
@@ -25,15 +25,15 @@ progress:
 
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event — so nothing about the home's behavior is ever lost.
 
-**Current Focus:** Phase 02 — Entity CRUD & Multi-Tenancy
+**Current Focus:** Phase 02 — entity-crud-multi-tenancy
 
 ---
 
 ## Current Position
 
 **Milestone:** 1 — Event-Driven Smart-Home Platform
-**Phase:** 2 — Entity CRUD & Multi-Tenancy
-**Plan:** Not started
+**Phase:** 02 (entity-crud-multi-tenancy) — EXECUTING
+**Plan:** 2 of 4
 **Status:** Ready to execute
 
 ```
@@ -64,6 +64,7 @@ Phase 8 [ ] Not started
 
 ---
 | Phase 01 P02 | 25min | 3 tasks | 3 files |
+| Phase 02 P01 | 2h | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -128,9 +129,9 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-07-08T20:39:18.763Z
-**Stopped at:** Phase 2 context gathered
-**Resume file:** .planning/phases/02-entity-crud-multi-tenancy/02-CONTEXT.md
+**Last session:** 2026-07-13T20:50:32.384Z
+**Stopped at:** Completed 02-01-PLAN.md
+**Resume file:** None
 
 **To resume:** Read `.planning/ROADMAP.md` Phase 2 detail section and `.planning/PROJECT.md` Constraints to re-establish context. Phase 2 has no CONTEXT.md yet — start with `/gsd-discuss-phase 2`.
 
@@ -151,3 +152,6 @@ None.
 - [Phase 01]: Ten new domain models added with BigInt autoincrement PKs; public_id (NanoID-shaped VarChar(21)) shaped on House/Room/Device/Command only, generator deferred to Phase 2
 - [Phase 01]: Events table carries a separate ordering BigInt id and idempotency Char(36) event_id (D-12) — never interchanged for ordering or dedup
 - [Phase 01]: No native DB enums/CHECK/min-max anywhere in the new schema; all value/range/vocabulary rules deferred to TypeBox in later phases (D-06)
+- [Phase 02-01]: public_id typing resolved with @default(nanoid(21)) as a TYPE-LEVEL AFFORDANCE only — column stays NOT NULL, app-side CSPRNG hook supplies every value (T-2-01), emits no SQL DEFAULT so the DB is untouched
+- [Phase 02-01]: DB-touching tests must call after(closeDb) — Prisma's pool keeps the event loop alive and hangs npm test forever
+- [Phase 02-01]: test data via @faker-js/faker factories, uuid suffix on emails (users.email is @unique; faker's pool repeats and would throw P2002)
