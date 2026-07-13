@@ -388,7 +388,7 @@ export type DeviceScalarWhereWithAggregatesInput = {
 
 export type DeviceCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   roomId: bigint | number
   houseId: bigint | number
@@ -405,7 +405,7 @@ export type DeviceCreateInput = {
 
 export type DeviceUncheckedCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   roomId: bigint | number
   houseId: bigint | number
@@ -456,7 +456,7 @@ export type DeviceUncheckedUpdateInput = {
 
 export type DeviceCreateManyInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   roomId: bigint | number
   houseId: bigint | number

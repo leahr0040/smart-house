@@ -40,7 +40,14 @@ model RefreshToken {
 
 model House {
   id        BigInt    @id @default(autoincrement())
-  publicId  String    @unique @map("public_id") @db.VarChar(21)
+  // @default(nanoid(21)) is a TYPE-LEVEL AFFORDANCE ONLY. It exists so public_id
+  // is optional in Prisma's create input (callers never pass it); it does NOT
+  // make the column nullable — public_id stays NOT NULL. The app-side CSPRNG
+  // minter in src/lib/prisma.ts sets publicId on every create, so this
+  // engine-side nanoid() never actually fires at runtime and T-2-01 is satisfied
+  // by the hook. Prisma mints such defaults in the query engine, so no SQL
+  // DEFAULT is emitted and the database is untouched by this attribute.
+  publicId  String    @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21)
   userId    BigInt    @map("user_id")
   name      String
   address   String?
@@ -54,7 +61,7 @@ model House {
 
 model Room {
   id        BigInt    @id @default(autoincrement())
-  publicId  String    @unique @map("public_id") @db.VarChar(21)
+  publicId  String    @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21) // type-level affordance; app-side minter supplies the value (see House)
   houseId   BigInt    @map("house_id")
   userId    BigInt    @map("user_id") // denormalized (DATA-02) — ownership checks never join through the hierarchy
   name      String
@@ -71,7 +78,7 @@ model Room {
 
 model Device {
   id           BigInt    @id @default(autoincrement())
-  publicId     String    @unique @map("public_id") @db.VarChar(21)
+  publicId     String    @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21) // type-level affordance; app-side minter supplies the value (see House)
   userId       BigInt    @map("user_id") // denormalized (DATA-02) — ownership checks never join through the hierarchy
   roomId       BigInt    @map("room_id")
   houseId      BigInt    @map("house_id") // denormalized (DATA-02) — list-by-house never joins through rooms
@@ -94,7 +101,7 @@ model Device {
 
 model Command {
   id        BigInt   @id @default(autoincrement())
-  publicId  String   @unique @map("public_id") @db.VarChar(21)
+  publicId  String   @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21) // type-level affordance; app-side minter supplies the value (see House)
   userId    BigInt   @map("user_id") // denormalized (DATA-02) — GET /commands/:id never joins through targets/devices
   status    String   @default("received") // received|rejected|pending|done|partially_failed|failed|no_targets — TypeBox-validated (D-06)
   createdAt DateTime @default(now()) @map("created_at")
