@@ -1,27 +1,33 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
 import { PrismaClient, Prisma } from '../generated/prisma/client'
 import { env } from './env'
+import { generatePublicId } from './nanoid'
 import { lowerFirst } from './strings'
 
 // Exhaustive by construction: Record<Prisma.ModelName, …> makes TS error if a
 // schema model is missing here. Add the row when you add the model.
-const modelConfig: Record<Prisma.ModelName, { softDelete: boolean }> = {
-  User: { softDelete: true },
-  House: { softDelete: true },
-  Room: { softDelete: true },
-  Device: { softDelete: true },
-  RefreshToken: { softDelete: false },
-  Command: { softDelete: false },
-  CommandTarget: { softDelete: false },
-  LightState: { softDelete: false },
-  AcState: { softDelete: false },
-  HeaterState: { softDelete: false },
-  SensorState: { softDelete: false },
-  Event: { softDelete: false }
+// publicId: does this model carry an externally-exposed NanoID public_id?
+// (user-facing entities only — internal-only tables are addressed by BigInt id)
+const modelConfig: Record<Prisma.ModelName, { softDelete: boolean; publicId: boolean }> = {
+  User: { softDelete: true, publicId: false },
+  House: { softDelete: true, publicId: true },
+  Room: { softDelete: true, publicId: true },
+  Device: { softDelete: true, publicId: true },
+  RefreshToken: { softDelete: false, publicId: false },
+  Command: { softDelete: false, publicId: true },
+  CommandTarget: { softDelete: false, publicId: false },
+  LightState: { softDelete: false, publicId: false },
+  AcState: { softDelete: false, publicId: false },
+  HeaterState: { softDelete: false, publicId: false },
+  SensorState: { softDelete: false, publicId: false },
+  Event: { softDelete: false, publicId: false }
 }
 
 const isSoftDeletable = (model: string): boolean =>
   modelConfig[model as Prisma.ModelName]?.softDelete ?? false
+
+const needsPublicId = (model: string): boolean =>
+  modelConfig[model as Prisma.ModelName]?.publicId ?? false
 
 // Read: inject deletedAt:null unless the caller already mentioned deletedAt
 // (escape hatch — lets you query soft-deleted rows deliberately). Generic so it
@@ -63,6 +69,19 @@ export const prisma = base.$extends({
       count({ model, args, query }) { return query(readGuard(model, args)) },
       aggregate({ model, args, query }) { return query(readGuard(model, args)) },
       groupBy({ model, args, query }) { return query(readGuard(model, args)) },
+
+      // Mint the external public_id app-side. Unlike softDelete() this goes
+      // through the query() continuation rather than a captured `base` delegate,
+      // so it stays inside any active $transaction.
+      create({ model, args, query }) {
+        if (!needsPublicId(model)) return query(args)
+        const createArgs = args as { data?: Record<string, unknown> }
+        const withData = {
+          ...args,
+          data: { ...createArgs.data, publicId: generatePublicId() }
+        } as typeof args
+        return query(withData)
+      },
 
       delete({ model, args, query }) { return softDelete(model, args, query, false) },
       deleteMany({ model, args, query }) { return softDelete(model, args, query, true) }
