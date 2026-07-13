@@ -1,7 +1,8 @@
 ---
 phase: 2
-reviewers: [opencode]
+reviewers: [opencode, claude]
 reviewed_at: 2026-07-12T21:22:12Z
+claude_review_added: 2026-07-13
 plans_reviewed: [02-01-PLAN.md, 02-02-PLAN.md, 02-03-PLAN.md, 02-04-PLAN.md]
 note: >-
   Claude was skipped (this review ran inside Claude Code — self-review excluded for
@@ -160,3 +161,34 @@ Only one independent reviewer (opencode) was available this run — Claude was e
 Pitfall 1 (`$transaction` `base`-escape) avoided in all cascade plans; multi-tenant isolation via `where: { publicId, userId }` returning 404; mass-assignment defense-in-depth; eager 3-step state-row transaction; exhaustive typed `Record` configs.
 
 **Overall: LOW risk.** No implementation-level blockers; the cascade test-correctness gap is the single item to fold into planning.
+
+---
+
+## Claude Review (supplementary, added 2026-07-13 on request)
+
+Added after the fact at the user's request — the original run excluded Claude for independence. Findings below were verified against source (`src/lib/prisma.ts`, `app.ts`, `src/routes/auth/index.ts`, `prisma/schema.prisma`) and complement, not repeat, the opencode review.
+
+### New finding opencode missed
+
+| Severity | Issue | Evidence |
+|----------|-------|----------|
+| **MEDIUM** | **No response schemas — BigInt-leak safety rests entirely on prose discipline.** All three slice plans (02-02/03/04) define request body schemas (`CreateHouseSchema`, `PatchHouseSchema`, …) but **no response schema**. Fastify with no response schema serializes via default `JSON.stringify`, which **throws on `BigInt`** — so the only defense against leaking the internal `id`/`stateId` is the repeated prose instruction "construct responses field-by-field, never `reply.send(rawRow)`," restated across 3 plans and 6 threat-model rows. A TypeBox **response** schema with `additionalProperties:false` makes the leak *structurally impossible* (fast-json-stringify emits only declared fields) and turns the tests' "asserts no `id` key" into a framework-enforced invariant. This is the lazier robust option and is what CLAUDE.md's "explicit over magic / let the type system enforce completeness" already points at. **Fix**: add a response `Type.Object` schema per entity to 02-02/03/04. | `src/routes/auth/index.ts:50` (the `Number(user.id)` BigInt-coercion anti-pattern the plans avoid); Fastify default serializer throws on BigInt with no schema. |
+
+### Confirmations against source (independent)
+
+- **Pitfall 1 is real**: `src/lib/prisma.ts:50` `softDelete` re-dispatches through the un-extended `base` delegate, which escapes any active `$transaction`. All three cascade plans correctly use direct `tx.*.updateMany` instead. ✓
+- **`prefixOverride = ''` is necessary**: `app.ts:14-17` registers autoload with no `dirNameRoutePrefix` override → defaults to `true` (auth serves at `/auth`), so `routes/houses/` would otherwise mount at `/houses/houses`. ✓
+- `readGuard` escape hatch (`prisma.ts:33`), `prismaRaw` (`prisma.ts:74`), exhaustive `modelConfig` (`prisma.ts:8`), `house_id` + index (`schema.prisma:77`) — all as the plans describe. ✓
+
+### Seconding opencode's confirmed items
+
+- **[MEDIUM] Cascade-verification gap** — confirmed real via `readGuard` (`prisma.ts:33-35`). Pin the fix explicitly: verify children via `prismaRaw.<model>.findFirst({ where: { id } })` and assert `deletedAt` is set. The plans' current "deletedAt escape hatch or a fresh query" wording is too vague and can produce a false green.
+- **[LOW-MED] `typebox` 1.x age** — recommend just switching to scoped `@sinclair/typebox` 0.34: CJS-native (drops the `engines.node >=22.12.0` floor and the whole `require(esm)` pitfall in 02-01), battle-tested, identical API for the `Object`/`Partial`/`Union`/`Literal` used here. The 5-day-old package buys nothing this phase needs.
+- **[LOW] POST 201 vs 200** — commit to 201 across all slices; "201/200" will cause a false test failure once an assertion picks one.
+
+### Minor / forward-looking
+
+- **Ownership-resolve boilerplate triplicated**: `findFirst({ where: { publicId, userId }, select: { id: true } })` → null → 404 repeats in every method of every service. Not a factory (CLAUDE.md mandates explicit-per-case), but one small shared `resolveOwned(model, publicId, userId)` helper is within project style. Optional.
+- **`stateType` representation** (not a blocker): stored as the Prisma model name (`'LightState'`) rather than the table (`'light_states'`) or device_type (`'light'`). Pin which representation Phase 6's state reads expect so they don't have to guess.
+
+**Claude verdict: LOW risk.** Fold in the response-schema task (new #1) and the `prismaRaw` cascade-test wording before execution — those two prevent a false green. The rest is polish.
