@@ -19,6 +19,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Bug / unexpected behavior**: Explain why it happened, propose 2–3 solutions each with trade-offs, then wait for approval before writing any code.
 - **New feature**: Propose an architecture plan (data model, affected files, API shape) and wait for approval before writing any code.
 
+### Branch per phase
+
+Each phase gets its own branch off `main`, `feat/<NN>-<phase-slug>`, created **before** the first planning commit and covering both planning and implementation. Merge to `main` via PR when the phase is done. See rule 1.7 in [`PLAN.md`](PLAN.md).
+
 ### Per-phase: structure-first, then test-first, then implement
 
 Every phase is built in this order (maps to atomic commits):
@@ -28,6 +32,12 @@ Every phase is built in this order (maps to atomic commits):
 3. **Implement** — fill in logic task-by-task until the tests go **green**. *(commits)*
 
 Do not write implementation logic before the structure and its tests exist.
+
+### Code style
+
+- **Explicit over magic.** Prefer typed, enumerated declarations over reflection or catch-all generalization — e.g. a typed `Record<Union, …>` config over runtime field-detection, and one handler per case over a single `$allOperations`-style catch-all. Let the type system enforce completeness.
+- **Readable conditions & names.** Meaningful names (never `a`, `tmp`); no double-negative conditions. Don't introduce a single-use variable just to name a boolean — inline it into an early-return guard clause.
+- **Separate concerns.** Extract generic, reusable helpers (string utils, etc.) into their own module instead of inlining them in a domain file.
 
 ## Commands
 
@@ -86,6 +96,8 @@ Pure functions that talk to the database — no Fastify types. Routes call servi
 Two models: `User` and `RefreshToken` (joined by `userId`). Prisma client is generated to `src/generated/prisma/` — never edit files there manually.
 
 `src/lib/prisma.ts` exports the singleton `prisma` client; import it from there everywhere.
+
+**Migrations — amend, don't stack, until pushed.** While a migration has **not** been pushed to `master`/`main`, never create a *new* migration to edit/update a column, table name, etc. — amend the existing still-local migration instead (hand-edit + re-run `prisma migrate dev`). A single migration may span multiple tables/changes; only split into a new migration once the prior one is pushed.
 
 ### Routes (`src/routes/`)
 

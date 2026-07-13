@@ -65,3 +65,4 @@ dist/
 
 # scratch files
 code.ts
+.claude/settings.local.json
