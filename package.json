@@ -23,12 +23,15 @@
     "@fastify/cookie": "^11.0.2",
     "@fastify/jwt": "^10.0.0",
     "@fastify/sensible": "^6.0.0",
+    "@fastify/type-provider-typebox": "^5.2.0",
     "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@sinclair/typebox": "^0.34.52",
     "bcrypt": "^5.1.1",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
     "fastify-plugin": "^5.0.0",
+    "nanoid": "^3.3.16",
     "zod": "^4.4.3"
   },
   "devDependencies": {
