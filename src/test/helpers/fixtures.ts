@@ -1,3 +1,4 @@
+import '../env' // must be first — points prisma at the test database (see src/test/env.ts)
 import { faker } from '@faker-js/faker'
 import type { FastifyInstance } from 'fastify'
 import { prisma, prismaRaw } from '../../lib/prisma'
@@ -7,6 +8,34 @@ import { prisma, prismaRaw } from '../../lib/prisma'
 // test file must release the pool: `after(closeDb)`.
 export async function closeDb(): Promise<void> {
   await prismaRaw.$disconnect()
+}
+
+// Every table, listed explicitly (CLAUDE.md: explicit over magic — a new model
+// must be added here deliberately, not discovered by reflection at runtime).
+// relationMode="prisma" means MariaDB holds no FK constraints, so truncation
+// order is irrelevant and no FOREIGN_KEY_CHECKS toggle is needed.
+const TABLES = [
+  'events',
+  'command_targets',
+  'commands',
+  'light_states',
+  'ac_states',
+  'heater_states',
+  'sensor_states',
+  'devices',
+  'rooms',
+  'houses',
+  'refresh_tokens',
+  'users'
+] as const
+
+// Wipes the TEST database between tests so no test can see another's rows.
+// Uses prismaRaw: the extended client's hooks are about soft-delete/publicId
+// semantics and have nothing to say about raw DDL.
+export async function resetDb(): Promise<void> {
+  for (const table of TABLES) {
+    await prismaRaw.$executeRawUnsafe(`TRUNCATE TABLE \`${table}\``)
+  }
 }
 
 // Faker's name/email pools are small and repeat often, and `users.email` is

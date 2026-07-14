@@ -1,9 +1,10 @@
-import { test, after } from 'node:test'
+import { test, after, beforeEach } from 'node:test'
 import assert from 'node:assert'
 import { build } from '../helper'
-import { closeDb, createTestUser } from '../helpers/fixtures'
+import { closeDb, resetDb, createTestUser } from '../helpers/fixtures'
 import { prisma } from '../../lib/prisma'
 
+beforeEach(resetDb)
 after(closeDb)
 
 // TEST-05 (auth clause). readGuard injects `deletedAt: null` into user lookups,

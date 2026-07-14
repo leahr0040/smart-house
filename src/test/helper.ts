@@ -1,3 +1,4 @@
+import './env' // must be first — points the app at the test database (see src/test/env.ts)
 import Fastify, { type FastifyInstance } from 'fastify'
 import appPlugin from '../../app'
 
