@@ -1,4 +1,5 @@
 import { Type, type Static } from '@fastify/type-provider-typebox'
+import type { House } from '../../generated/prisma/client'
 
 export const CreateHouseSchema = Type.Object(
   {
@@ -37,3 +38,12 @@ export const HouseResponseSchema = Type.Object(
 export type HouseResponse = Static<typeof HouseResponseSchema>
 
 export const HouseListResponseSchema = Type.Array(HouseResponseSchema)
+
+// Producer for the schema above — kept adjacent so the two can't drift.
+export const toHouseResponse = (house: House): HouseResponse => ({
+  publicId: house.publicId,
+  name: house.name,
+  address: house.address,
+  createdAt: house.createdAt.toISOString(),
+  updatedAt: house.updatedAt.toISOString()
+})
