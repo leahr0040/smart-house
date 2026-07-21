@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "tsc && node --test dist/src/test/**/*.test.js",
+    "test": "tsc && node --test --test-concurrency=1 dist/src/test/**/*.test.js",
     "start": "node dist/src/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
