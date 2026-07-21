@@ -1,19 +1,15 @@
-import '../env' // must be first — points prisma at the test database (see src/test/env.ts)
+import '../env' // must be first (see src/test/env.ts)
 import { faker } from '@faker-js/faker'
 import type { FastifyInstance } from 'fastify'
 import { prisma, prismaRaw } from '../../lib/prisma'
 
-// Prisma's connection pool keeps the event loop alive, so a DB-touching test
-// file runs green and then hangs forever instead of exiting. Every DB-touching
-// test file must release the pool: `after(closeDb)`.
+// Prisma's pool keeps the event loop alive; without this every DB-touching file hangs
+// instead of exiting. Each such file must `after(closeDb)`.
 export async function closeDb(): Promise<void> {
   await prismaRaw.$disconnect()
 }
 
-// Every table, listed explicitly (CLAUDE.md: explicit over magic — a new model
-// must be added here deliberately, not discovered by reflection at runtime).
-// relationMode="prisma" means MariaDB holds no FK constraints, so truncation
-// order is irrelevant and no FOREIGN_KEY_CHECKS toggle is needed.
+// relationMode="prisma" → no DB-level FKs, so truncation order is irrelevant.
 const TABLES = [
   'events',
   'command_targets',
@@ -29,19 +25,13 @@ const TABLES = [
   'users'
 ] as const
 
-// Wipes the TEST database between tests so no test can see another's rows.
-// Uses prismaRaw: the extended client's hooks are about soft-delete/publicId
-// semantics and have nothing to say about raw DDL.
 export async function resetDb(): Promise<void> {
   for (const table of TABLES) {
     await prismaRaw.$executeRawUnsafe(`TRUNCATE TABLE \`${table}\``)
   }
 }
 
-// Faker's name/email pools are small and repeat often, and `users.email` is
-// @unique — so faker alone would eventually collide (P2002) across runs. The
-// uuid suffix makes the address collision-proof while keeping it readable in
-// failure output: realism comes from faker, uniqueness from the uuid.
+// uuid suffix: users.email is @unique and faker's pool repeats, so faker alone collides (P2002).
 export function uniqueEmail(): string {
   const local = faker.internet.username().replace(/[^a-zA-Z0-9._-]/g, '')
   return `${local}.${faker.string.uuid()}@example.test`.toLowerCase()
@@ -56,11 +46,6 @@ export type TestUser = {
   email: string
   password: string
 }
-
-// --- Factories -------------------------------------------------------------
-// Each takes its required foreign keys positionally and everything else as
-// overrides, so a test states only what it actually cares about and the rest is
-// plausible-but-irrelevant data.
 
 export async function createTestUser(
   app: FastifyInstance,
@@ -82,10 +67,8 @@ export async function createTestUser(
 
   const { accessToken } = JSON.parse(res.payload) as { accessToken: string }
 
-  // Resolve the bigint id with a direct lookup rather than reading it off the
-  // register payload: that payload exposes Number(user.id) — the internal-id
-  // leak this phase exists to remove — and yields a JS number, not the bigint
-  // the seed factories need for foreign keys.
+  // Look the id up rather than read it off the payload: the payload exposes Number(id),
+  // which loses precision and is the very leak this phase removes. Factories need the bigint.
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
   if (!user) {
     throw new Error(`createTestUser: user ${email} not found after register`)
@@ -94,7 +77,6 @@ export async function createTestUser(
   return { token: accessToken, userId: user.id, email, password }
 }
 
-// Two independent tenants — the setup every cross-tenant isolation test needs.
 export async function createTwoTestUsers(app: FastifyInstance): Promise<{
   userA: TestUser
   userB: TestUser
@@ -104,10 +86,6 @@ export async function createTwoTestUsers(app: FastifyInstance): Promise<{
     userB: await createTestUser(app)
   }
 }
-
-// The seed factories write parent/child rows straight through prisma so a
-// slice's tests never depend on a sibling slice's routes existing.
-// publicId is minted by the create hook — never passed in here.
 
 export async function seedHouse(
   userId: bigint,

@@ -1,7 +1,4 @@
 import { nanoid } from 'nanoid'
 
-// External, non-enumerable identity for user-facing entities (House/Room/Device/
-// Command). Default nanoid() is 21 chars, which is exactly what the public_id
-// columns are sized for (@db.VarChar(21)). Never used for internal PKs — those
-// stay BigInt autoincrement.
+// Default nanoid() is 21 chars — matches the public_id columns' @db.VarChar(21).
 export const generatePublicId = (): string => nanoid()
