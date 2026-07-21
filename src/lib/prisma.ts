@@ -91,3 +91,16 @@ export const prisma = base.$extends({
 
 // Un-extended client for raw access / genuine hard delete.
 export const prismaRaw = base
+
+// A guarded update/delete throws P2025 when it matches no row (missing, cross-tenant,
+// or soft-deleted). Callers that read that as "not found" wrap the op to get null → 404.
+export async function nullIfNotFound<T>(op: Promise<T>): Promise<T | null> {
+  try {
+    return await op
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return null
+    }
+    throw error
+  }
+}

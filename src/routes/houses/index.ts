@@ -65,6 +65,7 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   }, async (request, reply) => {
     const userId = BigInt(request.user.id)
     const house = await updateHouse(request.params.housePublicId, userId, request.body)
+    if (!house) throw fastify.httpErrors.notFound()
     reply.send({
       publicId: house.publicId,
       name: house.name,

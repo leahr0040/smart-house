@@ -1,5 +1,5 @@
 import type { House } from '../generated/prisma/client'
-import { prisma } from '../lib/prisma'
+import { prisma, nullIfNotFound } from '../lib/prisma'
 
 type CreateHouseInput = {
   userId: bigint
@@ -32,9 +32,12 @@ export async function updateHouse(
   housePublicId: string,
   userId: bigint,
   patch: UpdateHousePatch
-): Promise<House> {
-  // No match (missing, cross-tenant, or soft-deleted via the readGuard) throws P2025 → 404.
-  return prisma.house.update({ where: { publicId: housePublicId, userId }, data: patch })
+): Promise<House | null> {
+  // No match (missing, cross-tenant, or soft-deleted via the readGuard) throws P2025;
+  // nullIfNotFound turns that into null so the route renders 404 at its own call site.
+  return nullIfNotFound(
+    prisma.house.update({ where: { publicId: housePublicId, userId }, data: patch })
+  )
 }
 
 export async function deleteHouse(housePublicId: string, userId: bigint): Promise<boolean> {
