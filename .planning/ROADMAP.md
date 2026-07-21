@@ -77,7 +77,7 @@
 - Tests (red): per-endpoint unit tests via `app.inject()`; second-user 404 fixture for every ownership-sensitive route; soft-delete exclusion tests; 401 boundary tests; eager-state-row creation test (device created → state detail row exists with defaults); `npm run build && npm test` must compile and run red.
 - Implement: service functions with ownership-embedded Prisma queries (`where: { id, userId }`); device creation service creates state detail row in the same transaction; batched `IN` for multi-device list; soft-delete filters on all reads; route handlers calling services.
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 **Wave 1**
 
@@ -85,7 +85,7 @@
 
 **Wave 2** *(parallel — disjoint files; each depends on 02-01)*
 
-- [ ] 02-02-PLAN.md — House CRUD slice: create/list/view/update/soft-delete + cascade to rooms+devices; multi-tenancy 404 + 401 (Wave 2)
+- [x] 02-02-PLAN.md — House CRUD slice: create/list/view/update/soft-delete + cascade to rooms+devices; multi-tenancy 404 + 401 (Wave 2)
 - [ ] 02-03-PLAN.md — Room CRUD slice: nested create under owned house + room→devices cascade; parent-ownership + cross-tenant 404 + 401 (Wave 2)
 - [ ] 02-04-PLAN.md — Device CRUD slice: create + eager per-type state row (STATE-01), list by room/house, immutable-type PATCH, leaf delete; unknown-type 400 + 404 + 401 (Wave 2)
 
@@ -247,7 +247,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema & Data Conventions | 2/2 | Complete    | 2026-07-07 |
-| 2. Entity CRUD & Multi-Tenancy | 1/4 | In Progress|  |
+| 2. Entity CRUD & Multi-Tenancy | 2/4 | In Progress|  |
 | 3. Messaging Infrastructure | 0/0 | Not started | - |
 | 4. Command Handler & Dispatcher | 0/0 | Not started | - |
 | 5. Simulated Device Worker | 0/0 | Not started | - |
