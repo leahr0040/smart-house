@@ -47,8 +47,6 @@ test('GET /houses lists only the caller\'s own houses', async (t) => {
   const body = JSON.parse(res.payload) as Array<Record<string, unknown>>
   assert.ok(Array.isArray(body), 'list response must be a bare array (D-02)')
 
-  // Scoped to the rows this test created — the suite runs against the shared dev
-  // DB, so an absolute row count would be asserting on unrelated leftovers.
   const mine = body.find((h) => h.publicId === houseA.publicId)
   assert.ok(mine, 'the caller\'s own house must appear in the list')
   assert.ok(!('id' in mine), 'response must not expose the internal id')
@@ -127,6 +125,62 @@ test('DELETE /houses/:housePublicId soft-deletes and excludes the house from sub
   assert.strictEqual(getRes.statusCode, 404, 'soft-deleted house must be excluded from GET /houses/:id (TEST-05)')
 })
 
+test('PATCH on a soft-deleted house returns 404 (guarded update → P2025)', async (t) => {
+  const app = await build(t)
+  const { userA } = await createTwoTestUsers(app)
+  const house = await seedHouse(userA.userId, { name: 'Doomed' })
+
+  const deleteRes = await app.inject({
+    method: 'DELETE',
+    url: `/houses/${house.publicId}`,
+    headers: authHeader(userA.token)
+  })
+  assert.strictEqual(deleteRes.statusCode, 204)
+
+  const patchRes = await app.inject({
+    method: 'PATCH',
+    url: `/houses/${house.publicId}`,
+    headers: authHeader(userA.token),
+    payload: { name: 'Resurrected' }
+  })
+  assert.strictEqual(patchRes.statusCode, 404, 'a soft-deleted house must not be updatable')
+
+  const raw = await prismaRaw.house.findUnique({ where: { publicId: house.publicId } })
+  assert.strictEqual(raw?.name, 'Doomed', 'guarded update must not have mutated the dead row')
+})
+
+test('re-deleting a soft-deleted house does not overwrite its original deletedAt (idempotent)', async (t) => {
+  const app = await build(t)
+  const { userA } = await createTwoTestUsers(app)
+  const house = await seedHouse(userA.userId)
+
+  await app.inject({ method: 'DELETE', url: `/houses/${house.publicId}`, headers: authHeader(userA.token) })
+  const firstDeletedAt = (await prismaRaw.house.findUnique({ where: { publicId: house.publicId } }))?.deletedAt
+  assert.ok(firstDeletedAt, 'house must be soft-deleted after the first DELETE')
+
+  const secondRes = await app.inject({
+    method: 'DELETE',
+    url: `/houses/${house.publicId}`,
+    headers: authHeader(userA.token)
+  })
+  assert.strictEqual(secondRes.statusCode, 404, 'a second DELETE of a dead house is a 404')
+
+  const secondDeletedAt = (await prismaRaw.house.findUnique({ where: { publicId: house.publicId } }))?.deletedAt
+  assert.deepStrictEqual(secondDeletedAt, firstDeletedAt, 'original deletedAt must be preserved (no re-stamp)')
+})
+
+test('upsert on a soft-deletable model is blocked at the extension', async (t) => {
+  await build(t)
+  await assert.rejects(
+    () => prisma.house.upsert({
+      where: { publicId: 'nonexistent-public-id' },
+      create: { userId: 1n, name: 'X' },
+      update: { name: 'X' }
+    }),
+    /upsert is not supported on soft-deletable model House/
+  )
+})
+
 test('cross-tenant access to another user\'s house returns 404, not 403', async (t) => {
   const app = await build(t)
   const { userA, userB } = await createTwoTestUsers(app)
@@ -154,8 +208,6 @@ test('cross-tenant access to another user\'s house returns 404, not 403', async 
   })
   assert.strictEqual(deleteRes.statusCode, 404)
 
-  // The house must still exist and be untouched — a cross-tenant 404 must not
-  // have side-effected a delete/update.
   const stillThere = await prisma.house.findUnique({ where: { publicId: house.publicId } })
   assert.ok(stillThere, 'cross-tenant requests must not mutate a house they do not own')
   assert.strictEqual(stillThere?.name, house.name)
@@ -205,10 +257,8 @@ test('DELETE /houses/:housePublicId cascades a soft-delete to its rooms and devi
   })
   assert.strictEqual(res.statusCode, 204)
 
-  // Read through prismaRaw (the un-extended client): the extended `prisma`'s readGuard
-  // auto-injects deletedAt:null and would return an empty set whether the rows were
-  // cascaded or never existed at all — a false green. prismaRaw proves the rows still
-  // exist and are soft- (not hard-) deleted.
+  // prismaRaw, not prisma: the guarded client hides soft-deleted rows, so it can't tell
+  // a cascade from a hard delete — this proves the rows survive with deletedAt set.
   const rawRooms = await prismaRaw.room.findMany({ where: { houseId: house.id } })
   const rawDevices = await prismaRaw.device.findMany({ where: { houseId: house.id } })
 
@@ -218,8 +268,6 @@ test('DELETE /houses/:housePublicId cascades a soft-delete to its rooms and devi
   assert.strictEqual(rawDevices.length, 2, 'both devices must still exist (soft, not hard, delete)')
   assert.ok(rawDevices.every((d) => d.deletedAt !== null), 'every cascaded device must have deletedAt set')
 
-  // Excluded from reads through the readGuard-protected client — the layer any future
-  // /rooms, /devices route reads through.
   const guardedRooms = await prisma.room.findMany({ where: { houseId: house.id } })
   const guardedDevices = await prisma.device.findMany({ where: { houseId: house.id } })
   assert.strictEqual(guardedRooms.length, 0, 'cascaded rooms must be excluded from guarded reads')

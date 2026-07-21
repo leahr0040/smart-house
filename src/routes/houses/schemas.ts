@@ -9,7 +9,6 @@ export const CreateHouseSchema = Type.Object(
 )
 export type CreateHouseBody = Static<typeof CreateHouseSchema>
 
-// PATCH: Type.Partial(...) — no hand-rolled optional fields (D-04)
 export const PatchHouseSchema = Type.Partial(
   Type.Object({
     name: Type.String({ minLength: 1, maxLength: 191 }),
@@ -24,8 +23,7 @@ export const HouseParamsSchema = Type.Object({
 })
 export type HouseParams = Static<typeof HouseParamsSchema>
 
-// publicId + safe metadata ONLY — no internal `id` field, so fast-json-stringify
-// structurally cannot serialize the BigInt id even if a handler ever leaked it (review F3).
+// No id field: fast-json-stringify then structurally can't leak the internal BigInt id (F3).
 export const HouseResponseSchema = Type.Object(
   {
     publicId: Type.String(),

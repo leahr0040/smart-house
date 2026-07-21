@@ -9,9 +9,7 @@ import {
 } from './schemas'
 import { createHouse, listHouses, getHouse, updateHouse, deleteHouse } from '../../services/house'
 
-// AutoLoad prefixes routes by directory name (this file lives at src/routes/houses/),
-// so without this override every route below would be mounted under /houses/houses.
-// Routes here declare their own absolute paths instead — do not delete this export.
+// Without this, AutoLoad would mount every route below under /houses/houses.
 export const prefixOverride = ''
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
@@ -67,7 +65,6 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   }, async (request, reply) => {
     const userId = BigInt(request.user.id)
     const house = await updateHouse(request.params.housePublicId, userId, request.body)
-    if (!house) throw fastify.httpErrors.notFound()
     reply.send({
       publicId: house.publicId,
       name: house.name,
@@ -82,8 +79,8 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
     schema: { params: HouseParamsSchema, response: { 204: Type.Null() } }
   }, async (request, reply) => {
     const userId = BigInt(request.user.id)
-    const house = await deleteHouse(request.params.housePublicId, userId)
-    if (!house) throw fastify.httpErrors.notFound()
+    const deleted = await deleteHouse(request.params.housePublicId, userId)
+    if (!deleted) throw fastify.httpErrors.notFound()
     reply.code(204).send(null)
   })
 }
