@@ -1,5 +1,6 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb'
 import { PrismaClient, Prisma } from '../generated/prisma/client'
+import { isDeviceType, type DeviceType } from '../services/device'
 import { env } from './env'
 import { generatePublicId } from './nanoid'
 import { lowerFirst } from './strings'
@@ -12,10 +13,10 @@ const modelConfig: Record<Prisma.ModelName, { softDelete: boolean; publicId: boo
   RefreshToken: { softDelete: false, publicId: false },
   Command: { softDelete: false, publicId: true },
   CommandTarget: { softDelete: false, publicId: false },
-  LightState: { softDelete: false, publicId: false },
-  AcState: { softDelete: false, publicId: false },
-  HeaterState: { softDelete: false, publicId: false },
-  SensorState: { softDelete: false, publicId: false },
+  LightState: { softDelete: true, publicId: false },
+  AcState: { softDelete: true, publicId: false },
+  HeaterState: { softDelete: true, publicId: false },
+  SensorState: { softDelete: true, publicId: false },
   Event: { softDelete: false, publicId: false }
 }
 
@@ -52,6 +53,21 @@ function softDelete<A>(
 }
 
 export const prisma = base.$extends({
+  // DB column stays VARCHAR; retype it to the DeviceType union in code only.
+  result: {
+    device: {
+      deviceType: {
+        needs: { deviceType: true, id: true },
+        // Validate at the VARCHAR→union seam so every reader gets a real DeviceType, not a cast lie.
+        compute: (device): DeviceType => {
+          if (!isDeviceType(device.deviceType)) {
+            throw new Error(`device ${device.id} has unknown device_type ${device.deviceType}`)
+          }
+          return device.deviceType
+        }
+      }
+    }
+  },
   query: {
     $allModels: {
       findUnique({ model, args, query }) { return query(readGuard(model, args)) },

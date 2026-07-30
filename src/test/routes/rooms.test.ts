@@ -1,7 +1,7 @@
 import { test, after, beforeEach } from 'node:test'
 import assert from 'node:assert'
 import { build } from '../helper'
-import { closeDb, resetDb, createTwoTestUsers, seedHouse, seedRoom, seedDevice } from '../helpers/fixtures'
+import { closeDb, resetDb, createTwoTestUsers, seedHouse, seedRoom, seedDevice, DEVICE_TYPES } from '../helpers/fixtures'
 import { prisma, prismaRaw } from '../../lib/prisma'
 
 beforeEach(resetDb)
@@ -234,4 +234,42 @@ test('DELETE /rooms/:roomPublicId cascades a soft-delete to its devices atomical
 
   const guardedDevices = await prisma.device.findMany({ where: { roomId: room.id } })
   assert.strictEqual(guardedDevices.length, 0, 'cascaded devices must be excluded from guarded reads')
+})
+
+const STATE_MODEL = {
+  light: 'lightState',
+  ac: 'acState',
+  heater: 'heaterState',
+  sensor: 'sensorState'
+} as const
+
+test('DELETE /rooms/:roomPublicId cascades to every per-type state table, not just one (ROOM-04, mixed types)', async (t) => {
+  const app = await build(t)
+  const { userA } = await createTwoTestUsers(app)
+  const house = await seedHouse(userA.userId)
+  const room = await seedRoom(userA.userId, house.id)
+
+  // One device of every type, so the group-by-type fan-out (softDeleteDeviceStates) writes
+  // against all four state tables in one delete — the single-type tests never exercise it.
+  const seeded: Array<{ deviceType: (typeof DEVICE_TYPES)[number]; deviceId: bigint }> = []
+  for (const deviceType of DEVICE_TYPES) {
+    const device = await seedDevice(userA.userId, room.id, house.id, deviceType)
+    seeded.push({ deviceType, deviceId: device.id })
+  }
+
+  const res = await app.inject({
+    method: 'DELETE',
+    url: `/rooms/${room.publicId}`,
+    headers: authHeader(userA.token)
+  })
+  assert.strictEqual(res.statusCode, 204)
+
+  for (const { deviceType, deviceId } of seeded) {
+    const delegate = prismaRaw[STATE_MODEL[deviceType]] as unknown as {
+      findFirst: (args: { where: { deviceId: bigint } }) => Promise<{ deletedAt: Date | null } | null>
+    }
+    const state = await delegate.findFirst({ where: { deviceId } })
+    assert.ok(state, `${deviceType} state row must still exist (soft, not hard, delete)`)
+    assert.ok(state?.deletedAt, `${deviceType} state row must have deletedAt set by the cascade`)
+  }
 })
