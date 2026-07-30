@@ -18,6 +18,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@fastify/autoload": "^6.0.0",
     "@fastify/cookie": "^11.0.2",
