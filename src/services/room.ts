@@ -1,6 +1,6 @@
 import type { Room } from '../generated/prisma/client'
 import { prisma, nullIfNotFound } from '../lib/prisma'
-import { softDeleteDeviceStates } from './device'
+import { cascadeSoftDeleteDevices } from './device'
 
 type CreateRoomInput = {
   housePublicId: string
@@ -73,19 +73,7 @@ export async function deleteRoom(roomPublicId: string, userId: bigint): Promise<
     // updateMany, not .delete(): the delete→update hook re-dispatches on the
     // un-extended client and would run outside this transaction.
     const now = new Date()
-    // Grab the live devices before soft-deleting them, so their state rows cascade too.
-    const devices = await tx.device.findMany({
-      where: { roomId: room.id, deletedAt: null },
-      select: { id: true, deviceType: true }
-    })
-    await softDeleteDeviceStates(tx, devices, now)
-    // Soft-delete exactly the rows we cascaded state for, not a re-derived roomId set:
-    // under READ COMMITTED a device inserted mid-transaction would otherwise be killed
-    // without its state row.
-    await tx.device.updateMany({
-      where: { id: { in: devices.map((device) => device.id) } },
-      data: { deletedAt: now }
-    })
+    await cascadeSoftDeleteDevices(tx, { roomId: room.id }, now)
     await tx.room.updateMany({
       where: { id: room.id, deletedAt: null },
       data: { deletedAt: now }

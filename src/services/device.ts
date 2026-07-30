@@ -160,6 +160,25 @@ export function softDeleteDeviceStates(
   )
 }
 
+// Soft-delete exactly the rows we cascaded state for, not a re-derived parent-id set:
+// under READ COMMITTED a device inserted mid-transaction would otherwise be killed
+// without its state row.
+export async function cascadeSoftDeleteDevices(
+  tx: ExtendedTransactionClient,
+  where: { houseId: bigint } | { roomId: bigint },
+  deletedAt: Date
+) {
+  const devices = await tx.device.findMany({
+    where: { ...where, deletedAt: null },
+    select: { id: true, deviceType: true }
+  })
+  await softDeleteDeviceStates(tx, devices, deletedAt)
+  await tx.device.updateMany({
+    where: { id: { in: devices.map((device) => device.id) } },
+    data: { deletedAt }
+  })
+}
+
 // The state row is created in the same transaction as the device, so its absence means
 // data corruption, not a normal 404 — surface it loudly rather than returning a
 // half-device.
