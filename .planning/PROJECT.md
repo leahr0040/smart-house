@@ -20,11 +20,14 @@ The system always reflects the true current state of the house AND preserves a c
 - ✓ User can fetch their own identity (`/auth/me`) and log out (revoke refresh token)
 - ✓ Fastify 5 + Prisma + MariaDB backend with global error normalization and schema-validated routes
 
+<!-- Delivered in Phase 2 (Entity CRUD & Multi-Tenancy). -->
+
+- ✓ User → House → Room → Device hierarchy, multi-tenant (scoped per user) — Phase 2
+- ✓ CRUD for houses, rooms, and devices — Phase 2
+- ✓ Typed per-device-type current state via per-type detail tables selected by `device_type` (detail row keyed on `device_id`); no JSON; single current-state facet; eager state row at device creation — Phase 2
+
 ### Active
 
-- [ ] User → House → Room → Device hierarchy, multi-tenant (scoped per user)
-- [ ] CRUD for houses, rooms, and devices
-- [ ] Typed per-device-type current state via per-type detail tables selected by `device_type` (detail row keyed on `device_id`); no JSON; single current-state facet
 - [ ] Per-device current-state projection, rebuildable from the event log
 - [ ] First-class commands with selector-based targeting (device ids / room / house + optional type) and multi-device fan-out
 - [ ] Layered validation: sync acceptance, async type validation
@@ -137,4 +140,4 @@ Every phase plan opens with a **structure-first, test-first** sequence before im
 **After each milestone:** full review of all sections; re-check Core Value and Out of Scope; update Context with current state.
 
 ---
-*Last updated: 2026-07-07 — Phase 1 (Schema & Data Conventions) complete*
+*Last updated: 2026-07-30 — Phase 2 (Entity CRUD & Multi-Tenancy) complete*
