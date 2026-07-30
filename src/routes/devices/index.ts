@@ -8,7 +8,9 @@ import {
   DeviceParamsSchema,
   DeviceResponseSchema,
   DeviceListResponseSchema,
-  toDeviceResponse
+  DeviceDetailResponseSchema,
+  toDeviceResponse,
+  toDeviceDetailResponse
 } from './schemas'
 import {
   createDevice,
@@ -25,10 +27,10 @@ export const prefixOverride = ''
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.post('/rooms/:roomPublicId/devices', {
     preHandler: fastify.authenticate,
-    schema: { params: RoomDevicesParamsSchema, body: CreateDeviceSchema, response: { 201: DeviceResponseSchema } }
+    schema: { params: RoomDevicesParamsSchema, body: CreateDeviceSchema, response: { 201: DeviceDetailResponseSchema } }
   }, async (request, reply) => {
     const userId = BigInt(request.user.id)
-    const device = await createDevice({
+    const result = await createDevice({
       roomPublicId: request.params.roomPublicId,
       userId,
       name: request.body.name,
@@ -36,8 +38,8 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
       manufacturer: request.body.manufacturer ?? null,
       model: request.body.model ?? null
     })
-    if (!device) throw fastify.httpErrors.notFound()
-    reply.code(201).send(toDeviceResponse(device))
+    if (!result) throw fastify.httpErrors.notFound()
+    reply.code(201).send(toDeviceDetailResponse(result.device, result.state))
   })
 
   fastify.get('/rooms/:roomPublicId/devices', {
@@ -62,12 +64,12 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
 
   fastify.get('/devices/:devicePublicId', {
     preHandler: fastify.authenticate,
-    schema: { params: DeviceParamsSchema, response: { 200: DeviceResponseSchema } }
+    schema: { params: DeviceParamsSchema, response: { 200: DeviceDetailResponseSchema } }
   }, async (request, reply) => {
     const userId = BigInt(request.user.id)
-    const device = await getDevice(request.params.devicePublicId, userId)
-    if (!device) throw fastify.httpErrors.notFound()
-    reply.send(toDeviceResponse(device))
+    const result = await getDevice(request.params.devicePublicId, userId)
+    if (!result) throw fastify.httpErrors.notFound()
+    reply.send(toDeviceDetailResponse(result.device, result.state))
   })
 
   fastify.patch('/devices/:devicePublicId', {

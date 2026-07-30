@@ -1,6 +1,5 @@
 import { Type, type Static } from '@fastify/type-provider-typebox'
-import type { Device } from '../../generated/prisma/client'
-import { DEVICE_TYPES } from '../../services/device'
+import { DeviceType, DEVICE_TYPES, type Device, type LoadedState } from '../../services/device'
 
 export const DeviceTypeSchema = Type.Union(DEVICE_TYPES.map((t) => Type.Literal(t)))
 
@@ -15,8 +14,8 @@ export const CreateDeviceSchema = Type.Object(
 )
 export type CreateDeviceBody = Static<typeof CreateDeviceSchema>
 
-// deviceType intentionally omitted: PATCH is metadata-only, additionalProperties:false
-// rejects a deviceType change with 400 (D-06) instead of silently ignoring it.
+// deviceType omitted: PATCH is metadata-only, so ajv strips a deviceType change before
+// it reaches the update — the type stays immutable (D-06).
 export const PatchDeviceSchema = Type.Partial(
   Type.Object({
     name: Type.String({ minLength: 1, maxLength: 191 }),
@@ -42,8 +41,7 @@ export const DeviceParamsSchema = Type.Object({
 })
 export type DeviceParams = Static<typeof DeviceParamsSchema>
 
-// No id/stateId field: fast-json-stringify then structurally can't leak the internal
-// BigInt id or the morph state pointer (F3).
+// No id field: fast-json-stringify then structurally can't leak the internal BigInt id (F3).
 export const DeviceResponseSchema = Type.Object(
   {
     publicId: Type.String(),
@@ -64,9 +62,61 @@ export const DeviceListResponseSchema = Type.Array(DeviceResponseSchema)
 export const toDeviceResponse = (device: Device): DeviceResponse => ({
   publicId: device.publicId,
   name: device.name,
-  deviceType: device.deviceType as DeviceResponse['deviceType'],
+  deviceType: device.deviceType,
   manufacturer: device.manufacturer,
   model: device.model,
   createdAt: device.createdAt.toISOString(),
   updatedAt: device.updatedAt.toISOString()
+})
+
+// Per-type state shapes. Distinct required keys + additionalProperties:false let
+// fast-json-stringify pick the right union member from the row alone (no discriminator).
+const LightStateResponseSchema = Type.Object(
+  { isOn: Type.Boolean(), brightness: Type.Integer() },
+  { additionalProperties: false }
+)
+const AcStateResponseSchema = Type.Object(
+  { isOn: Type.Boolean(), targetTemp: Type.Integer(), mode: Type.String() },
+  { additionalProperties: false }
+)
+const HeaterStateResponseSchema = Type.Object(
+  { isOn: Type.Boolean(), targetTemp: Type.Integer() },
+  { additionalProperties: false }
+)
+const SensorStateResponseSchema = Type.Object(
+  { reading: Type.Number(), unit: Type.String() },
+  { additionalProperties: false }
+)
+
+export const DeviceStateSchema = Type.Union([
+  LightStateResponseSchema,
+  AcStateResponseSchema,
+  HeaterStateResponseSchema,
+  SensorStateResponseSchema
+])
+
+// GET /devices/:id and POST return the device plus its resolved morph state; the lists don't.
+export const DeviceDetailResponseSchema = Type.Composite([
+  DeviceResponseSchema,
+  Type.Object({ state: DeviceStateSchema })
+])
+export type DeviceDetailResponse = Static<typeof DeviceDetailResponseSchema>
+
+const toStateResponse = (loaded: LoadedState): Static<typeof DeviceStateSchema> => {
+  switch (loaded.kind) {
+    case DeviceType.Light:
+      return { isOn: loaded.state.isOn, brightness: loaded.state.brightness }
+    case DeviceType.Ac:
+      return { isOn: loaded.state.isOn, targetTemp: loaded.state.targetTemp, mode: loaded.state.mode }
+    case DeviceType.Heater:
+      return { isOn: loaded.state.isOn, targetTemp: loaded.state.targetTemp }
+    case DeviceType.Sensor:
+      // Decimal(6,2) → number: max 9999.99, well within float precision.
+      return { reading: Number(loaded.state.reading), unit: loaded.state.unit }
+  }
+}
+
+export const toDeviceDetailResponse = (device: Device, loaded: LoadedState): DeviceDetailResponse => ({
+  ...toDeviceResponse(device),
+  state: toStateResponse(loaded)
 })

@@ -2,6 +2,7 @@ import '../env' // must be first (see src/test/env.ts)
 import { faker } from '@faker-js/faker'
 import type { FastifyInstance } from 'fastify'
 import { prisma, prismaRaw } from '../../lib/prisma'
+import { deviceStateConfig, DeviceType, DEVICE_TYPES } from '../../services/device'
 
 // Prisma's pool keeps the event loop alive; without this every DB-touching file hangs
 // instead of exiting. Each such file must `after(closeDb)`.
@@ -37,8 +38,7 @@ export function uniqueEmail(): string {
   return `${local}.${faker.string.uuid()}@example.test`.toLowerCase()
 }
 
-export const DEVICE_TYPES = ['light', 'ac', 'heater', 'sensor'] as const
-export type DeviceType = (typeof DEVICE_TYPES)[number]
+export { DeviceType, DEVICE_TYPES }
 
 export type TestUser = {
   token: string
@@ -125,22 +125,23 @@ export async function seedRoom(
   })
 }
 
+// Creates the device AND its per-type state row, like createDevice — a device without
+// a state row violates STATE-01 and would 500 on GET.
 export async function seedDevice(
   userId: bigint,
   roomId: bigint,
   houseId: bigint,
-  deviceType: DeviceType = 'light',
+  deviceType: DeviceType = DeviceType.Light,
   overrides: Partial<{ name: string; manufacturer: string | null; model: string | null }> = {}
 ) {
-  return prisma.device.create({
-    data: {
-      userId,
-      roomId,
-      houseId,
-      deviceType,
-      name: overrides.name ?? `${faker.commerce.productAdjective()} ${deviceType}`,
-      manufacturer: overrides.manufacturer ?? faker.company.name(),
-      model: overrides.model ?? faker.string.alphanumeric(6).toUpperCase()
-    }
+  const { device } = await deviceStateConfig[deviceType].createWithState({
+    userId,
+    roomId,
+    houseId,
+    deviceType,
+    name: overrides.name ?? `${faker.commerce.productAdjective()} ${deviceType}`,
+    manufacturer: overrides.manufacturer ?? faker.company.name(),
+    model: overrides.model ?? faker.string.alphanumeric(6).toUpperCase()
   })
+  return device
 }
