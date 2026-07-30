@@ -11,7 +11,7 @@
 ## Phases
 
 - [x] **Phase 1: Schema & Data Conventions** - Complete Prisma schema including the append-only events table (with entity_type + nullable device_id for command-lifecycle rows); snake_case @@map; soft-delete; BigInt autoincrement PKs + NanoID public_id (non-enumerable external IDs); user_id denormalization; polymorphic morph tables; last_event_id (BigInt) column for tuple guard (completed 2026-07-07)
-- [ ] **Phase 2: Entity CRUD & Multi-Tenancy** - House/Room/Device CRUD routes and services; ownership-embedded queries; multi-tenancy enforcement; soft-delete filters; auth boundary; eager state detail row at device creation
+- [x] **Phase 2: Entity CRUD & Multi-Tenancy** - House/Room/Device CRUD routes and services; ownership-embedded queries; multi-tenancy enforcement; soft-delete filters; auth boundary; eager state detail row at device creation (completed 2026-07-30)
 - [ ] **Phase 3: Messaging Infrastructure** - RabbitMQ singleton and Fastify plugin; topic exchange topology provisioned on boot — per consumer queue (device_effects, device_reports): main queue, `*.retry` wait queue (TTL backoff, dead-letters back to main), terminal `*.dlq`; background connect (no startup block); 503 degradation for POST /commands when broker down; auth/CRUD/state/event reads (all MariaDB) unaffected
 - [ ] **Phase 4: Command Handler & Dispatcher** - Two-tier validation (acceptance sync → 400 including action↔type for explicit-device-id selectors; all device-type business logic → type validation async); TypeBox action schemas; selector resolution; persist-then-publish (one transaction, fan-out cap ~200); command status received/pending/done/partially_failed/failed; command-lifecycle events emitted (received/resolved/rejected); CMD-08 type validation async contract; background reaper
 - [ ] **Phase 5: Simulated Device Worker** - Standalone worker process (npm run worker) that consumes effects, applies them, classifies failures by reason (determined domain outcome → explicit failure report published and acked; transient/offline → nack (no requeue) into the `*.retry` wait queue, `x-death`-bounded → terminal DLQ; poison → nack no-requeue → DLQ directly)
@@ -34,7 +34,7 @@
 1. `prisma migrate dev` applies cleanly; rename migrations for the existing `User` and `RefreshToken` tables produce `users` and `refresh_tokens` in MariaDB; all new tables and columns are snake_case via `@map`/`@@map`. The generated migration SQL must be hand-verified to emit `RENAME TABLE`, not DROP+CREATE — no data loss.
 2. House, Room, Device, Command, CommandTarget, and per-type state detail tables (`light_states`, `ac_states`, `heater_states`, `sensor_states`) are present with `BigInt @default(autoincrement())` PKs; House/Room/Device/Command carry a NanoID `public_id` (`@unique`); Room and Device carry a denormalized `user_id` (BigInt) column; `deleted_at` exists on User, House, Room, and Device. The existing `User`/`RefreshToken` PKs (and `refresh_tokens.user_id` FK) widen Int→BigInt for uniform integer keys.
 3. The append-only `events` table is in the schema with: a BigInt `id` PK (insertion-ordered — the cursor/tuple-guard ordering key); a deterministic `event_id` (uuidv5, UNIQUE index — the idempotency key, never used for ordering); `entity_type` (enum: device | command), `source`, `event_kind`, `device_id` (nullable — null for command-lifecycle rows), `device_type`, `command_id` (nullable), `snapshot`, `recorded_at`; a compound index on `(device_id, recorded_at)`. The `entity_type` and nullable `device_id` columns are present from day one so command-lifecycle milestone rows (`command.received`, `command.resolved`, `command.rejected`, `command.completed`) can be written in the same table without schema changes.
-4. Per-type state detail tables carry `last_event_at` and `last_event_id` (BigInt, references `events.id`) columns for the tuple guard; `state_type` and `state_id` morph columns are on Device; CommandTarget carries `deadline_at`; Command carries a `status` column that supports `received`, `rejected`, `pending`, `done`, `partially_failed`, `failed`, and `no_targets` values.
+4. Per-type state detail tables carry `last_event_at` and `last_event_id` (BigInt, references `events.id`) columns for the tuple guard, and a unique `device_id` linking back to the owning device (which detail table applies is selected by `device_type` — no morph pointer on Device); CommandTarget carries `deadline_at`; Command carries a `status` column that supports `received`, `rejected`, `pending`, `done`, `partially_failed`, `failed`, and `no_targets` values.
 5. The NanoID `public_id` generation seam is confirmed and documented: NanoID has no Prisma native default, so `public_id` is generated app-side at create time (the generator lands in Phase 2; Phase 1 only shapes the `@unique` column, sized for a 21-char NanoID). The former uuid-v7 storage spike is obsolete — no internal id uses `@default(uuid())`.
 6. `npm run build` compiles with zero type errors; `npm test` passes all existing auth tests; `prisma migrate dev` exits 0 (compile + migration smoke-check).
 
@@ -67,7 +67,7 @@
 1. Authenticated user can create, list, view, update, and soft-delete their own houses; `GET /houses/:id` for a house owned by a different user returns 404, not 403.
 2. Authenticated user can create, list, update, and soft-delete rooms within a house they own; soft-deleted rooms and houses are excluded from all list responses.
 3. Authenticated user can add a device of type light/AC/heater/sensor to a room they own, list and view devices by room and by house, update device metadata, and soft-delete a device.
-4. When a device is created, a per-type state detail row is immediately inserted with default values; `state_type` and `state_id` are fixed at creation time; no state row is created anywhere else in v1.
+4. When a device is created, a per-type state detail row (selected by `device_type`) is immediately inserted with default values; the device's type is fixed at creation time; no state row is created anywhere else in v1.
 5. TypeBox schema validates the device type on creation; an unknown device type returns 400; every new endpoint returns 401 without a valid JWT.
 6. A second authenticated user receives 404 for all resources they do not own; soft-deleted rows are excluded from all reads; a soft-deleted user cannot log in.
 
@@ -77,7 +77,7 @@
 - Tests (red): per-endpoint unit tests via `app.inject()`; second-user 404 fixture for every ownership-sensitive route; soft-delete exclusion tests; 401 boundary tests; eager-state-row creation test (device created → state detail row exists with defaults); `npm run build && npm test` must compile and run red.
 - Implement: service functions with ownership-embedded Prisma queries (`where: { id, userId }`); device creation service creates state detail row in the same transaction; batched `IN` for multi-device list; soft-delete filters on all reads; route handlers calling services.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 
 **Wave 1**
 
@@ -87,7 +87,7 @@
 
 - [x] 02-02-PLAN.md — House CRUD slice: create/list/view/update/soft-delete + cascade to rooms+devices; multi-tenancy 404 + 401 (Wave 2)
 - [x] 02-03-PLAN.md — Room CRUD slice: nested create under owned house + room→devices cascade; parent-ownership + cross-tenant 404 + 401 (Wave 2)
-- [ ] 02-04-PLAN.md — Device CRUD slice: create + eager per-type state row (STATE-01), list by room/house, immutable-type PATCH, leaf delete; unknown-type 400 + 404 + 401 (Wave 2)
+- [x] 02-04-PLAN.md — Device CRUD slice: create + eager per-type state row (STATE-01), list by room/house, immutable-type PATCH, leaf delete; unknown-type 400 + 404 + 401 (Wave 2)
 
 ---
 
@@ -247,7 +247,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema & Data Conventions | 2/2 | Complete    | 2026-07-07 |
-| 2. Entity CRUD & Multi-Tenancy | 3/4 | In Progress|  |
+| 2. Entity CRUD & Multi-Tenancy | 4/4 | Complete   | 2026-07-30 |
 | 3. Messaging Infrastructure | 0/0 | Not started | - |
 | 4. Command Handler & Dispatcher | 0/0 | Not started | - |
 | 5. Simulated Device Worker | 0/0 | Not started | - |

@@ -87,7 +87,7 @@ Phase 8 [ ] Not started
 | `user_id` denormalized on Room, Device, Command | Ownership checks without joining through the hierarchy |
 | Action vocabulary in TypeBox registry (`device-actions.ts`), registry-seamed | Static types + free validation; DB-backed vocabulary only if dynamic device types become a requirement |
 | Eager state detail row at device creation | Consumer hot path is only ever a guarded UPDATE — never a create |
-| Polymorphic morph for typed state (`state_type` + `state_id` → per-type detail tables) | No JSON column; single current facet per device |
+| Typed state via per-type detail tables selected by `device_type` (detail row keyed on unique `device_id`; no morph pointer) | No JSON column; single current facet per device |
 
 ### Architecture Constraints
 

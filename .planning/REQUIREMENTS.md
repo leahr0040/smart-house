@@ -27,11 +27,11 @@ The event-driven smart-home platform milestone, built on the existing Fastify 5 
 - [ ] **DEV-02**: User can list and view devices by room and by house
 - [ ] **DEV-03**: User can update device metadata (e.g. name)
 - [ ] **DEV-04**: User can remove a device (soft delete)
-- [ ] **DEV-05**: Per-device-type current state is typed via polymorphic morph (`state_type` + `state_id` → per-type detail tables), validated by TypeBox; no JSON, single current facet
+- [ ] **DEV-05**: Per-device-type current state is typed via per-type detail tables selected by `device_type` (each detail row holds a unique `device_id`; no morph pointer column on the device), validated by TypeBox; no JSON, single current facet
 
 ### Device State (current-state projection)
 
-- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; `state_type`/`state_id` fixed then); a device report guarded-updates it (apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)`, no create in the hot path) as part of the consumer's single MariaDB transaction
+- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; the row's `device_type`-selected table is fixed then); a device report guarded-updates it (apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)`, no create in the hot path) as part of the consumer's single MariaDB transaction
 - [ ] **STATE-02**: User can read the current state of a single device they own
 - [ ] **STATE-03**: User can read current state for all devices in a room
 - [ ] **STATE-04**: User can read a full current-state snapshot of a house

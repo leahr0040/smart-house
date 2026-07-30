@@ -24,7 +24,7 @@ The system always reflects the true current state of the house AND preserves a c
 
 - [ ] User → House → Room → Device hierarchy, multi-tenant (scoped per user)
 - [ ] CRUD for houses, rooms, and devices
-- [ ] Typed per-device-type current state via polymorphic morph (`state_type` + `state_id`); no JSON; single current-state facet
+- [ ] Typed per-device-type current state via per-type detail tables selected by `device_type` (detail row keyed on `device_id`); no JSON; single current-state facet
 - [ ] Per-device current-state projection, rebuildable from the event log
 - [ ] First-class commands with selector-based targeting (device ids / room / house + optional type) and multi-device fan-out
 - [ ] Layered validation: sync acceptance, async type validation
@@ -68,7 +68,7 @@ The system always reflects the true current state of the house AND preserves a c
   - *Target transitions*: compare-and-set, `pending → done|failed` only, never overwriting a terminal state (first-terminal-wins).
   - *Intra-MariaDB transactions* are used wherever multiple rows change together (device + eager state row; command + targets; target-status + roll-up). Transactions never span stores (there is only one) and never substitute for idempotency.
 - **Event time**: `recorded_at` is producer-minted event-time (the worker stamps when the effect happened). v1 has one worker → monotonic; multi-producer clock skew is a v2 concern.
-- **State row lifecycle**: the per-device state detail row is created eagerly at device creation (defaults; `state_type`/`state_id` fixed then), so the consumer's hot path is only ever a guarded `UPDATE`.
+- **State row lifecycle**: the per-device state detail row is created eagerly at device creation (defaults; its `device_type`-selected table fixed then), so the consumer's hot path is only ever a guarded `UPDATE`.
 - **Layered validation** (two tiers):
   - **Acceptance** (sync, pre-persist → 400): request shape/types/format/required, selector well-formed, valid action object, fan-out cap. Plus action↔type compatibility **only for explicit-device-id selectors**. Type-scoped selectors (scope + `deviceType`) need no such check; untyped scope selectors resolve action↔type per-target in async validation.
   - **Type validation** (async, event-driven → state transition / failure report, never a sync 400), split by who can know the rule:
@@ -90,7 +90,7 @@ The system always reflects the true current state of the house AND preserves a c
 - **Event immutability**: the `events` table is append-only; no TTL in v1 (retain all events).
 - **DB naming**: snake_case columns/tables via Prisma `@map`/`@@map`, including existing `User`/`RefreshToken` models. The existing-table rename uses a hand-authored `ALTER TABLE … RENAME` migration (not a generated diff, which may emit DROP+CREATE).
 - **PKs**: `BigInt @default(autoincrement())` internal PK on every table (User/RefreshToken widen Int→BigInt for uniform integer FKs). External non-enumerable identity via a NanoID `public_id` (`@unique`) on user-facing entities (House/Room/Device/Command), generated app-side at create time; CommandTarget, the per-type state tables, and `events` are addressed internally only (no `public_id`). `events` carries a BigInt `id` (PK — ordering, cursor, and `last_event_id` target) **and** the deterministic `event_id` uuidv5 (idempotency, `@unique`). No internal id uses `@default(uuid())`, so the v7-vs-v4 adapter concern is out of scope.
-- **Device state**: typed per device type via polymorphic morph (`state_type` + `state_id`) → per-type detail tables; no JSON column; single current facet.
+- **Device state**: typed per device type via per-type detail tables selected by `device_type` (each detail row holds a unique `device_id`; no morph pointer on the device); no JSON column; single current facet.
 - **Device report trust**: the consumer validates the `device_id` exists and is owned; a `device_token` envelope field is reserved (unenforced in v1) for v2 per-device secrets.
 - **Soft delete**: `deleted_at` on User/House/Room/Device; reads exclude soft-deleted rows; a soft-deleted user cannot authenticate.
 
