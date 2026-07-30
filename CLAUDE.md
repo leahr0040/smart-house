@@ -19,6 +19,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Bug / unexpected behavior**: Explain why it happened, propose 2–3 solutions each with trade-offs, then wait for approval before writing any code.
 - **New feature**: Propose an architecture plan (data model, affected files, API shape) and wait for approval before writing any code.
 
+### Stay in scope (applies to subagents/executors too)
+
+Never install an npm package, change `prisma/schema.prisma`, or add infrastructure (test harness, config files, env files) that is **outside the plan's declared `files_modified`** without stopping to ask. Package installs are behind a blocking-human review checkpoint — that gate applies to subagents as well; do not work around it.
+
 ### Branch per phase
 
 Each phase gets its own branch off `main`, `feat/<NN>-<phase-slug>`, created **before** the first planning commit and covering both planning and implementation. Merge to `main` via PR when the phase is done. See rule 1.7 in [`PLAN.md`](PLAN.md).
@@ -38,6 +42,8 @@ Do not write implementation logic before the structure and its tests exist.
 - **Explicit over magic.** Prefer typed, enumerated declarations over reflection or catch-all generalization — e.g. a typed `Record<Union, …>` config over runtime field-detection, and one handler per case over a single `$allOperations`-style catch-all. Let the type system enforce completeness.
 - **Readable conditions & names.** Meaningful names (never `a`, `tmp`); no double-negative conditions. Don't introduce a single-use variable just to name a boolean — inline it into an early-return guard clause.
 - **Separate concerns.** Extract generic, reusable helpers (string utils, etc.) into their own module instead of inlining them in a domain file.
+- **Stdlib over hand-rolled.** Reach for built-ins before writing a helper — e.g. `Object.groupBy` / `Object.entries` over a manual grouping loop. Avoid reflection dispatch (`(x as Record<string, any>)[name]`) when an enumerated or explicit form reads clearly.
+- **Mind the query count.** In the service layer, keep DB round-trips at the floor for the task. When adding DB access, know the resulting number of queries and justify anything beyond the minimum (an extra `findMany` round-trip must buy more than it costs).
 
 ## Commands
 
