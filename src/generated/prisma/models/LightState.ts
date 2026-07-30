@@ -49,6 +49,7 @@ export type LightStateMinAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type LightStateMaxAggregateOutputType = {
@@ -60,6 +61,7 @@ export type LightStateMaxAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type LightStateCountAggregateOutputType = {
@@ -71,6 +73,7 @@ export type LightStateCountAggregateOutputType = {
   lastEventId: number
   createdAt: number
   updatedAt: number
+  deletedAt: number
   _all: number
 }
 
@@ -98,6 +101,7 @@ export type LightStateMinAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type LightStateMaxAggregateInputType = {
@@ -109,6 +113,7 @@ export type LightStateMaxAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type LightStateCountAggregateInputType = {
@@ -120,6 +125,7 @@ export type LightStateCountAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
   _all?: true
 }
 
@@ -218,6 +224,7 @@ export type LightStateGroupByOutputType = {
   lastEventId: bigint | null
   createdAt: Date
   updatedAt: Date
+  deletedAt: Date | null
   _count: LightStateCountAggregateOutputType | null
   _avg: LightStateAvgAggregateOutputType | null
   _sum: LightStateSumAggregateOutputType | null
@@ -252,6 +259,8 @@ export type LightStateWhereInput = {
   lastEventId?: Prisma.BigIntNullableFilter<"LightState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"LightState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"LightState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"LightState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }
 
 export type LightStateOrderByWithRelationInput = {
@@ -263,6 +272,8 @@ export type LightStateOrderByWithRelationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  device?: Prisma.DeviceOrderByWithRelationInput
 }
 
 export type LightStateWhereUniqueInput = Prisma.AtLeast<{
@@ -277,6 +288,8 @@ export type LightStateWhereUniqueInput = Prisma.AtLeast<{
   lastEventId?: Prisma.BigIntNullableFilter<"LightState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"LightState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"LightState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"LightState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }, "id" | "deviceId">
 
 export type LightStateOrderByWithAggregationInput = {
@@ -288,6 +301,7 @@ export type LightStateOrderByWithAggregationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.LightStateCountOrderByAggregateInput
   _avg?: Prisma.LightStateAvgOrderByAggregateInput
   _max?: Prisma.LightStateMaxOrderByAggregateInput
@@ -307,17 +321,19 @@ export type LightStateScalarWhereWithAggregatesInput = {
   lastEventId?: Prisma.BigIntNullableWithAggregatesFilter<"LightState"> | bigint | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"LightState"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"LightState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LightState"> | Date | string | null
 }
 
 export type LightStateCreateInput = {
   id?: bigint | number
-  deviceId: bigint | number
   isOn?: boolean
   brightness?: number
   lastEventAt?: Date | string | null
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  device: Prisma.DeviceCreateNestedOneWithoutLightStateInput
 }
 
 export type LightStateUncheckedCreateInput = {
@@ -329,17 +345,19 @@ export type LightStateUncheckedCreateInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type LightStateUpdateInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brightness?: Prisma.IntFieldUpdateOperationsInput | number
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  device?: Prisma.DeviceUpdateOneRequiredWithoutLightStateNestedInput
 }
 
 export type LightStateUncheckedUpdateInput = {
@@ -351,6 +369,7 @@ export type LightStateUncheckedUpdateInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type LightStateCreateManyInput = {
@@ -362,17 +381,18 @@ export type LightStateCreateManyInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type LightStateUpdateManyMutationInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   brightness?: Prisma.IntFieldUpdateOperationsInput | number
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type LightStateUncheckedUpdateManyInput = {
@@ -384,6 +404,12 @@ export type LightStateUncheckedUpdateManyInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type LightStateNullableScalarRelationFilter = {
+  is?: Prisma.LightStateWhereInput | null
+  isNot?: Prisma.LightStateWhereInput | null
 }
 
 export type LightStateCountOrderByAggregateInput = {
@@ -395,6 +421,7 @@ export type LightStateCountOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type LightStateAvgOrderByAggregateInput = {
@@ -413,6 +440,7 @@ export type LightStateMaxOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type LightStateMinOrderByAggregateInput = {
@@ -424,6 +452,7 @@ export type LightStateMinOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type LightStateSumOrderByAggregateInput = {
@@ -433,8 +462,108 @@ export type LightStateSumOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
 }
 
+export type LightStateCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.LightStateCreateWithoutDeviceInput, Prisma.LightStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.LightStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.LightStateWhereUniqueInput
+}
+
+export type LightStateUncheckedCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.LightStateCreateWithoutDeviceInput, Prisma.LightStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.LightStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.LightStateWhereUniqueInput
+}
+
+export type LightStateUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.LightStateCreateWithoutDeviceInput, Prisma.LightStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.LightStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.LightStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.LightStateWhereInput | boolean
+  delete?: Prisma.LightStateWhereInput | boolean
+  connect?: Prisma.LightStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LightStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.LightStateUpdateWithoutDeviceInput>, Prisma.LightStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type LightStateUncheckedUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.LightStateCreateWithoutDeviceInput, Prisma.LightStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.LightStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.LightStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.LightStateWhereInput | boolean
+  delete?: Prisma.LightStateWhereInput | boolean
+  connect?: Prisma.LightStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LightStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.LightStateUpdateWithoutDeviceInput>, Prisma.LightStateUncheckedUpdateWithoutDeviceInput>
+}
+
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
+}
+
+export type NullableBigIntFieldUpdateOperationsInput = {
+  set?: bigint | number | null
+  increment?: bigint | number
+  decrement?: bigint | number
+  multiply?: bigint | number
+  divide?: bigint | number
+}
+
+export type LightStateCreateWithoutDeviceInput = {
+  id?: bigint | number
+  isOn?: boolean
+  brightness?: number
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type LightStateUncheckedCreateWithoutDeviceInput = {
+  id?: bigint | number
+  isOn?: boolean
+  brightness?: number
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type LightStateCreateOrConnectWithoutDeviceInput = {
+  where: Prisma.LightStateWhereUniqueInput
+  create: Prisma.XOR<Prisma.LightStateCreateWithoutDeviceInput, Prisma.LightStateUncheckedCreateWithoutDeviceInput>
+}
+
+export type LightStateUpsertWithoutDeviceInput = {
+  update: Prisma.XOR<Prisma.LightStateUpdateWithoutDeviceInput, Prisma.LightStateUncheckedUpdateWithoutDeviceInput>
+  create: Prisma.XOR<Prisma.LightStateCreateWithoutDeviceInput, Prisma.LightStateUncheckedCreateWithoutDeviceInput>
+  where?: Prisma.LightStateWhereInput
+}
+
+export type LightStateUpdateToOneWithWhereWithoutDeviceInput = {
+  where?: Prisma.LightStateWhereInput
+  data: Prisma.XOR<Prisma.LightStateUpdateWithoutDeviceInput, Prisma.LightStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type LightStateUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  brightness?: Prisma.IntFieldUpdateOperationsInput | number
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type LightStateUncheckedUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  brightness?: Prisma.IntFieldUpdateOperationsInput | number
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -448,6 +577,8 @@ export type LightStateSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lightState"]>
 
 
@@ -461,13 +592,19 @@ export type LightStateSelectScalar = {
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }
 
-export type LightStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "isOn" | "brightness" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt", ExtArgs["result"]["lightState"]>
+export type LightStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "isOn" | "brightness" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["lightState"]>
+export type LightStateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
+}
 
 export type $LightStatePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "LightState"
-  objects: {}
+  objects: {
+    device: Prisma.$DevicePayload<ExtArgs>
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
     deviceId: bigint
@@ -477,6 +614,7 @@ export type $LightStatePayload<ExtArgs extends runtime.Types.Extensions.Internal
     lastEventId: bigint | null
     createdAt: Date
     updatedAt: Date
+    deletedAt: Date | null
   }, ExtArgs["result"]["lightState"]>
   composites: {}
 }
@@ -817,6 +955,7 @@ readonly fields: LightStateFieldRefs;
  */
 export interface Prisma__LightStateClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  device<T extends Prisma.DeviceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DeviceDefaultArgs<ExtArgs>>): Prisma.Prisma__DeviceClient<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -854,6 +993,7 @@ export interface LightStateFieldRefs {
   readonly lastEventId: Prisma.FieldRef<"LightState", 'BigInt'>
   readonly createdAt: Prisma.FieldRef<"LightState", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"LightState", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"LightState", 'DateTime'>
 }
     
 
@@ -870,6 +1010,10 @@ export type LightStateFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the LightState
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
   /**
    * Filter, which LightState to fetch.
    */
@@ -889,6 +1033,10 @@ export type LightStateFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extens
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
+  /**
    * Filter, which LightState to fetch.
    */
   where: Prisma.LightStateWhereUniqueInput
@@ -906,6 +1054,10 @@ export type LightStateFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the LightState
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
   /**
    * Filter, which LightState to fetch.
    */
@@ -955,6 +1107,10 @@ export type LightStateFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensi
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
+  /**
    * Filter, which LightState to fetch.
    */
   where?: Prisma.LightStateWhereInput
@@ -1002,6 +1158,10 @@ export type LightStateFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the LightState
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
   /**
    * Filter, which LightStates to fetch.
    */
@@ -1051,6 +1211,10 @@ export type LightStateCreateArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
+  /**
    * The data needed to create a LightState.
    */
   data: Prisma.XOR<Prisma.LightStateCreateInput, Prisma.LightStateUncheckedCreateInput>
@@ -1079,6 +1243,10 @@ export type LightStateUpdateArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the LightState
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
   /**
    * The data needed to update a LightState.
    */
@@ -1120,6 +1288,10 @@ export type LightStateUpsertArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
+  /**
    * The filter to search for the LightState to update in case it exists.
    */
   where: Prisma.LightStateWhereUniqueInput
@@ -1145,6 +1317,10 @@ export type LightStateDeleteArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the LightState
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
   /**
    * Filter which LightState to delete.
    */
@@ -1177,4 +1353,8 @@ export type LightStateDefaultArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the LightState
    */
   omit?: Prisma.LightStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
 }

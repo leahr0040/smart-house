@@ -86,17 +86,21 @@ model Device {
   deviceType   String    @map("device_type") // validated in TypeBox, not a DB enum (D-06)
   manufacturer String?
   model        String?
-  stateType    String?   @map("state_type") // morph discriminator — which per-type state table state_id points to
-  stateId      BigInt?   @map("state_id") // morph target id, no @relation (relationMode=prisma; one field, four possible tables)
   deletedAt    DateTime? @map("deleted_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // The device's one state facet; deviceType says which is populated. Each child holds a
+  // unique device_id, so no morph pointer on the device. relationMode=prisma, so no DB FK.
+  lightState  LightState?
+  acState     AcState?
+  heaterState HeaterState?
+  sensorState SensorState?
 
   @@map("devices")
   @@index([userId])
   @@index([roomId])
   @@index([houseId])
-  @@index([stateId])
 }
 
 model Command {
@@ -133,6 +137,8 @@ model LightState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("light_states")
   @@unique([deviceId])
@@ -148,6 +154,8 @@ model AcState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("ac_states")
   @@unique([deviceId])
@@ -162,6 +170,8 @@ model HeaterState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("heater_states")
   @@unique([deviceId])
@@ -176,6 +186,8 @@ model SensorState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("sensor_states")
   @@unique([deviceId])

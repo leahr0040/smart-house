@@ -50,6 +50,7 @@ export type AcStateMinAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type AcStateMaxAggregateOutputType = {
@@ -62,6 +63,7 @@ export type AcStateMaxAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type AcStateCountAggregateOutputType = {
@@ -74,6 +76,7 @@ export type AcStateCountAggregateOutputType = {
   lastEventId: number
   createdAt: number
   updatedAt: number
+  deletedAt: number
   _all: number
 }
 
@@ -102,6 +105,7 @@ export type AcStateMinAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type AcStateMaxAggregateInputType = {
@@ -114,6 +118,7 @@ export type AcStateMaxAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type AcStateCountAggregateInputType = {
@@ -126,6 +131,7 @@ export type AcStateCountAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
   _all?: true
 }
 
@@ -225,6 +231,7 @@ export type AcStateGroupByOutputType = {
   lastEventId: bigint | null
   createdAt: Date
   updatedAt: Date
+  deletedAt: Date | null
   _count: AcStateCountAggregateOutputType | null
   _avg: AcStateAvgAggregateOutputType | null
   _sum: AcStateSumAggregateOutputType | null
@@ -260,6 +267,8 @@ export type AcStateWhereInput = {
   lastEventId?: Prisma.BigIntNullableFilter<"AcState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"AcState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AcState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"AcState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }
 
 export type AcStateOrderByWithRelationInput = {
@@ -272,6 +281,8 @@ export type AcStateOrderByWithRelationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  device?: Prisma.DeviceOrderByWithRelationInput
   _relevance?: Prisma.AcStateOrderByRelevanceInput
 }
 
@@ -288,6 +299,8 @@ export type AcStateWhereUniqueInput = Prisma.AtLeast<{
   lastEventId?: Prisma.BigIntNullableFilter<"AcState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"AcState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AcState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"AcState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }, "id" | "deviceId">
 
 export type AcStateOrderByWithAggregationInput = {
@@ -300,6 +313,7 @@ export type AcStateOrderByWithAggregationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AcStateCountOrderByAggregateInput
   _avg?: Prisma.AcStateAvgOrderByAggregateInput
   _max?: Prisma.AcStateMaxOrderByAggregateInput
@@ -320,11 +334,11 @@ export type AcStateScalarWhereWithAggregatesInput = {
   lastEventId?: Prisma.BigIntNullableWithAggregatesFilter<"AcState"> | bigint | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AcState"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AcState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AcState"> | Date | string | null
 }
 
 export type AcStateCreateInput = {
   id?: bigint | number
-  deviceId: bigint | number
   isOn?: boolean
   targetTemp: number
   mode: string
@@ -332,6 +346,8 @@ export type AcStateCreateInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  device: Prisma.DeviceCreateNestedOneWithoutAcStateInput
 }
 
 export type AcStateUncheckedCreateInput = {
@@ -344,11 +360,11 @@ export type AcStateUncheckedCreateInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type AcStateUpdateInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
   mode?: Prisma.StringFieldUpdateOperationsInput | string
@@ -356,6 +372,8 @@ export type AcStateUpdateInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  device?: Prisma.DeviceUpdateOneRequiredWithoutAcStateNestedInput
 }
 
 export type AcStateUncheckedUpdateInput = {
@@ -368,6 +386,7 @@ export type AcStateUncheckedUpdateInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type AcStateCreateManyInput = {
@@ -380,11 +399,11 @@ export type AcStateCreateManyInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type AcStateUpdateManyMutationInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
   mode?: Prisma.StringFieldUpdateOperationsInput | string
@@ -392,6 +411,7 @@ export type AcStateUpdateManyMutationInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type AcStateUncheckedUpdateManyInput = {
@@ -404,6 +424,12 @@ export type AcStateUncheckedUpdateManyInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type AcStateNullableScalarRelationFilter = {
+  is?: Prisma.AcStateWhereInput | null
+  isNot?: Prisma.AcStateWhereInput | null
 }
 
 export type AcStateOrderByRelevanceInput = {
@@ -422,6 +448,7 @@ export type AcStateCountOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type AcStateAvgOrderByAggregateInput = {
@@ -441,6 +468,7 @@ export type AcStateMaxOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type AcStateMinOrderByAggregateInput = {
@@ -453,6 +481,7 @@ export type AcStateMinOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type AcStateSumOrderByAggregateInput = {
@@ -460,6 +489,102 @@ export type AcStateSumOrderByAggregateInput = {
   deviceId?: Prisma.SortOrder
   targetTemp?: Prisma.SortOrder
   lastEventId?: Prisma.SortOrder
+}
+
+export type AcStateCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.AcStateCreateWithoutDeviceInput, Prisma.AcStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.AcStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.AcStateWhereUniqueInput
+}
+
+export type AcStateUncheckedCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.AcStateCreateWithoutDeviceInput, Prisma.AcStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.AcStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.AcStateWhereUniqueInput
+}
+
+export type AcStateUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.AcStateCreateWithoutDeviceInput, Prisma.AcStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.AcStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.AcStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.AcStateWhereInput | boolean
+  delete?: Prisma.AcStateWhereInput | boolean
+  connect?: Prisma.AcStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AcStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.AcStateUpdateWithoutDeviceInput>, Prisma.AcStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type AcStateUncheckedUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.AcStateCreateWithoutDeviceInput, Prisma.AcStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.AcStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.AcStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.AcStateWhereInput | boolean
+  delete?: Prisma.AcStateWhereInput | boolean
+  connect?: Prisma.AcStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AcStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.AcStateUpdateWithoutDeviceInput>, Prisma.AcStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type AcStateCreateWithoutDeviceInput = {
+  id?: bigint | number
+  isOn?: boolean
+  targetTemp: number
+  mode: string
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type AcStateUncheckedCreateWithoutDeviceInput = {
+  id?: bigint | number
+  isOn?: boolean
+  targetTemp: number
+  mode: string
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type AcStateCreateOrConnectWithoutDeviceInput = {
+  where: Prisma.AcStateWhereUniqueInput
+  create: Prisma.XOR<Prisma.AcStateCreateWithoutDeviceInput, Prisma.AcStateUncheckedCreateWithoutDeviceInput>
+}
+
+export type AcStateUpsertWithoutDeviceInput = {
+  update: Prisma.XOR<Prisma.AcStateUpdateWithoutDeviceInput, Prisma.AcStateUncheckedUpdateWithoutDeviceInput>
+  create: Prisma.XOR<Prisma.AcStateCreateWithoutDeviceInput, Prisma.AcStateUncheckedCreateWithoutDeviceInput>
+  where?: Prisma.AcStateWhereInput
+}
+
+export type AcStateUpdateToOneWithWhereWithoutDeviceInput = {
+  where?: Prisma.AcStateWhereInput
+  data: Prisma.XOR<Prisma.AcStateUpdateWithoutDeviceInput, Prisma.AcStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type AcStateUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
+  mode?: Prisma.StringFieldUpdateOperationsInput | string
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type AcStateUncheckedUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
+  mode?: Prisma.StringFieldUpdateOperationsInput | string
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -474,6 +599,8 @@ export type AcStateSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["acState"]>
 
 
@@ -488,13 +615,19 @@ export type AcStateSelectScalar = {
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }
 
-export type AcStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "isOn" | "targetTemp" | "mode" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt", ExtArgs["result"]["acState"]>
+export type AcStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "isOn" | "targetTemp" | "mode" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["acState"]>
+export type AcStateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
+}
 
 export type $AcStatePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AcState"
-  objects: {}
+  objects: {
+    device: Prisma.$DevicePayload<ExtArgs>
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
     deviceId: bigint
@@ -505,6 +638,7 @@ export type $AcStatePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     lastEventId: bigint | null
     createdAt: Date
     updatedAt: Date
+    deletedAt: Date | null
   }, ExtArgs["result"]["acState"]>
   composites: {}
 }
@@ -845,6 +979,7 @@ readonly fields: AcStateFieldRefs;
  */
 export interface Prisma__AcStateClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  device<T extends Prisma.DeviceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DeviceDefaultArgs<ExtArgs>>): Prisma.Prisma__DeviceClient<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -883,6 +1018,7 @@ export interface AcStateFieldRefs {
   readonly lastEventId: Prisma.FieldRef<"AcState", 'BigInt'>
   readonly createdAt: Prisma.FieldRef<"AcState", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AcState", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"AcState", 'DateTime'>
 }
     
 
@@ -899,6 +1035,10 @@ export type AcStateFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the AcState
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
   /**
    * Filter, which AcState to fetch.
    */
@@ -918,6 +1058,10 @@ export type AcStateFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extension
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
+  /**
    * Filter, which AcState to fetch.
    */
   where: Prisma.AcStateWhereUniqueInput
@@ -935,6 +1079,10 @@ export type AcStateFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the AcState
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
   /**
    * Filter, which AcState to fetch.
    */
@@ -984,6 +1132,10 @@ export type AcStateFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
+  /**
    * Filter, which AcState to fetch.
    */
   where?: Prisma.AcStateWhereInput
@@ -1031,6 +1183,10 @@ export type AcStateFindManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the AcState
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
   /**
    * Filter, which AcStates to fetch.
    */
@@ -1080,6 +1236,10 @@ export type AcStateCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
+  /**
    * The data needed to create a AcState.
    */
   data: Prisma.XOR<Prisma.AcStateCreateInput, Prisma.AcStateUncheckedCreateInput>
@@ -1108,6 +1268,10 @@ export type AcStateUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * Omit specific fields from the AcState
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
   /**
    * The data needed to update a AcState.
    */
@@ -1149,6 +1313,10 @@ export type AcStateUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
+  /**
    * The filter to search for the AcState to update in case it exists.
    */
   where: Prisma.AcStateWhereUniqueInput
@@ -1174,6 +1342,10 @@ export type AcStateDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * Omit specific fields from the AcState
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
   /**
    * Filter which AcState to delete.
    */
@@ -1206,4 +1378,8 @@ export type AcStateDefaultArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Omit specific fields from the AcState
    */
   omit?: Prisma.AcStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
 }

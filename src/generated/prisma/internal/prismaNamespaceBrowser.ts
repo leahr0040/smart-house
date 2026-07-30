@@ -146,8 +146,6 @@ export const DeviceScalarFieldEnum = {
   deviceType: 'deviceType',
   manufacturer: 'manufacturer',
   model: 'model',
-  stateType: 'stateType',
-  stateId: 'stateId',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -188,7 +186,8 @@ export const LightStateScalarFieldEnum = {
   lastEventAt: 'lastEventAt',
   lastEventId: 'lastEventId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 } as const
 
 export type LightStateScalarFieldEnum = (typeof LightStateScalarFieldEnum)[keyof typeof LightStateScalarFieldEnum]
@@ -203,7 +202,8 @@ export const AcStateScalarFieldEnum = {
   lastEventAt: 'lastEventAt',
   lastEventId: 'lastEventId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 } as const
 
 export type AcStateScalarFieldEnum = (typeof AcStateScalarFieldEnum)[keyof typeof AcStateScalarFieldEnum]
@@ -217,7 +217,8 @@ export const HeaterStateScalarFieldEnum = {
   lastEventAt: 'lastEventAt',
   lastEventId: 'lastEventId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 } as const
 
 export type HeaterStateScalarFieldEnum = (typeof HeaterStateScalarFieldEnum)[keyof typeof HeaterStateScalarFieldEnum]
@@ -231,7 +232,8 @@ export const SensorStateScalarFieldEnum = {
   lastEventAt: 'lastEventAt',
   lastEventId: 'lastEventId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 } as const
 
 export type SensorStateScalarFieldEnum = (typeof SensorStateScalarFieldEnum)[keyof typeof SensorStateScalarFieldEnum]
@@ -315,8 +317,7 @@ export const DeviceOrderByRelevanceFieldEnum = {
   name: 'name',
   deviceType: 'deviceType',
   manufacturer: 'manufacturer',
-  model: 'model',
-  stateType: 'stateType'
+  model: 'model'
 } as const
 
 export type DeviceOrderByRelevanceFieldEnum = (typeof DeviceOrderByRelevanceFieldEnum)[keyof typeof DeviceOrderByRelevanceFieldEnum]
