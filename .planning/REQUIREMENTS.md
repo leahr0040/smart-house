@@ -8,30 +8,30 @@ The event-driven smart-home platform milestone, built on the existing Fastify 5 
 
 ### Houses
 
-- [ ] **HOUSE-01**: User can create a house
-- [ ] **HOUSE-02**: User can list and view their own houses
-- [ ] **HOUSE-03**: User can update a house they own
-- [ ] **HOUSE-04**: User can delete a house they own (soft delete)
-- [ ] **HOUSE-05**: A user can only access houses they own (cross-tenant access returns 404)
+- [x] **HOUSE-01**: User can create a house
+- [x] **HOUSE-02**: User can list and view their own houses
+- [x] **HOUSE-03**: User can update a house they own
+- [x] **HOUSE-04**: User can delete a house they own (soft delete)
+- [x] **HOUSE-05**: A user can only access houses they own (cross-tenant access returns 404)
 
 ### Rooms
 
-- [ ] **ROOM-01**: User can create a room in a house they own
-- [ ] **ROOM-02**: User can list rooms in a house they own
-- [ ] **ROOM-03**: User can update a room they own
-- [ ] **ROOM-04**: User can delete a room they own (soft delete)
+- [x] **ROOM-01**: User can create a room in a house they own
+- [x] **ROOM-02**: User can list rooms in a house they own
+- [x] **ROOM-03**: User can update a room they own
+- [x] **ROOM-04**: User can delete a room they own (soft delete)
 
 ### Devices
 
-- [ ] **DEV-01**: User can add a device of a known type (light, AC, heater, sensor) to a room
-- [ ] **DEV-02**: User can list and view devices by room and by house
-- [ ] **DEV-03**: User can update device metadata (e.g. name)
-- [ ] **DEV-04**: User can remove a device (soft delete)
-- [ ] **DEV-05**: Per-device-type current state is typed via per-type detail tables selected by `device_type` (each detail row holds a unique `device_id`; no morph pointer column on the device), validated by TypeBox; no JSON, single current facet
+- [x] **DEV-01**: User can add a device of a known type (light, AC, heater, sensor) to a room
+- [x] **DEV-02**: User can list and view devices by room and by house
+- [x] **DEV-03**: User can update device metadata (e.g. name)
+- [x] **DEV-04**: User can remove a device (soft delete)
+- [x] **DEV-05**: Per-device-type current state is typed via per-type detail tables selected by `device_type` (each detail row holds a unique `device_id`; no morph pointer column on the device), validated by TypeBox; no JSON, single current facet
 
 ### Device State (current-state projection)
 
-- [ ] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; the row's `device_type`-selected table is fixed then); a device report guarded-updates it (apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)`, no create in the hot path) as part of the consumer's single MariaDB transaction
+- [x] **STATE-01**: The per-device state detail row is created eagerly at device creation (defaults; the row's `device_type`-selected table is fixed then); a device report guarded-updates it (apply only if `(last_event_at, last_event_id) < (:recorded_at, :event_id)`, no create in the hot path) as part of the consumer's single MariaDB transaction
 - [ ] **STATE-02**: User can read the current state of a single device they own
 - [ ] **STATE-03**: User can read current state for all devices in a room
 - [ ] **STATE-04**: User can read a full current-state snapshot of a house
@@ -76,14 +76,14 @@ The event-driven smart-home platform milestone, built on the existing Fastify 5 
 
 Tests use the existing convention: `node:test` + `node:assert`, the `build(t)` helper, and `app.inject()`, against compiled `dist/`. Async integration tests use **testcontainers** (MariaDB + RabbitMQ, 2 containers via a shared suite-level fixture with a between-test reset: truncate tables + purge queues); infra-free logic (validators, selector resolution, translator) uses pure unit tests. Each phase ships its own tests; the below are cross-cutting.
 
-- [ ] **TEST-01**: Every ownership-scoped endpoint has a multi-tenancy test — a second user gets 404 for resources they don't own
+- [x] **TEST-01**: Every ownership-scoped endpoint has a multi-tenancy test — a second user gets 404 for resources they don't own
 - [ ] **TEST-02**: Command→event round-trip — a command produces effects, the worker reports, an event is appended, and current state updates
 - [ ] **TEST-03**: Idempotency — a redelivered effect/report yields exactly one event (deterministic `event_id`) and does not corrupt current state
 - [ ] **TEST-04**: DLQ — a poison message is dead-lettered rather than retried forever
 - [x] **TEST-05**: Soft-delete — soft-deleted rows excluded from all reads; a soft-deleted user cannot authenticate
 - [ ] **TEST-06**: Projection rebuild — current state can be rebuilt from the event log (validates EVENT-06)
 - [ ] **TEST-07**: Acceptance/type validation — a malformed request → 400; an explicit-id action↔type mismatch → 400
-- [ ] **TEST-08**: Auth boundary — every new endpoint returns 401 without a valid token
+- [x] **TEST-08**: Auth boundary — every new endpoint returns 401 without a valid token
 - [ ] **TEST-09**: Device-type value validation — valid state values accepted, out-of-range rejected (via async type validation)
 - [ ] **TEST-10**: Out-of-order guard — a stale report does not overwrite newer current state
 - [ ] **TEST-11**: Selector + fan-out — a room/house selector resolves exactly the owned matching devices; a multi-device command emits one event per device sharing `command_id`; a partial failure rolls up to `partially_failed`
@@ -144,24 +144,24 @@ Tests use the existing convention: `node:test` + `node:assert`, the `build(t)` h
 | DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 1 | Complete |
 | DATA-04 | Phase 1 | Complete |
-| HOUSE-01 | Phase 2 | Pending |
-| HOUSE-02 | Phase 2 | Pending |
-| HOUSE-03 | Phase 2 | Pending |
-| HOUSE-04 | Phase 2 | Pending |
-| HOUSE-05 | Phase 2 | Pending |
-| ROOM-01 | Phase 2 | Pending |
-| ROOM-02 | Phase 2 | Pending |
-| ROOM-03 | Phase 2 | Pending |
-| ROOM-04 | Phase 2 | Pending |
-| DEV-01 | Phase 2 | Pending |
-| DEV-02 | Phase 2 | Pending |
-| DEV-03 | Phase 2 | Pending |
-| DEV-04 | Phase 2 | Pending |
-| DEV-05 | Phase 2 | Pending |
-| STATE-01 | Phase 2 | Pending |
-| TEST-01 | Phase 2 | Pending |
+| HOUSE-01 | Phase 2 | Complete |
+| HOUSE-02 | Phase 2 | Complete |
+| HOUSE-03 | Phase 2 | Complete |
+| HOUSE-04 | Phase 2 | Complete |
+| HOUSE-05 | Phase 2 | Complete |
+| ROOM-01 | Phase 2 | Complete |
+| ROOM-02 | Phase 2 | Complete |
+| ROOM-03 | Phase 2 | Complete |
+| ROOM-04 | Phase 2 | Complete |
+| DEV-01 | Phase 2 | Complete |
+| DEV-02 | Phase 2 | Complete |
+| DEV-03 | Phase 2 | Complete |
+| DEV-04 | Phase 2 | Complete |
+| DEV-05 | Phase 2 | Complete |
+| STATE-01 | Phase 2 | Complete |
+| TEST-01 | Phase 2 | Complete |
 | TEST-05 | Phase 2 | Complete |
-| TEST-08 | Phase 2 | Pending |
+| TEST-08 | Phase 2 | Complete |
 | MSG-01 | Phase 3 | Pending |
 | CMD-01 | Phase 4 | Pending |
 | CMD-02 | Phase 4 | Pending |
