@@ -5,14 +5,14 @@ milestone_name: milestone
 current_phase: 3
 current_phase_name: Messaging Infrastructure
 status: planning
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-07-30T11:57:33.164Z"
+stopped_at: Phase 3 context gathered
+last_updated: "2026-08-02T10:18:43.592Z"
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 2
   total_plans: 6
   completed_plans: 6
-  percent: 25
+  percent: 22
 ---
 
 # Project State — Smart House
@@ -121,6 +121,10 @@ Start with `/gsd-discuss-phase 2` to gather context, then `/gsd-plan-phase 2`. C
 - [ ] Phase 2: expose `public_id` not internal `id`; wire NanoID generation seam; settle BigInt-serialization strategy
 - [ ] Add `RABBITMQ_URL` to `.env.example` during Phase 3
 
+### Roadmap Evolution
+
+- Phase 9 added: CI/CD Pipeline with Testcontainers — GitHub Actions runs the suite on push/PR against an ephemeral Testcontainers MariaDB; CD deferred until a deploy target exists.
+
 ### Blockers
 
 None.
@@ -129,9 +133,9 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-07-13T20:50:32.384Z
-**Stopped at:** Completed 02-01-PLAN.md
-**Resume file:** None
+**Last session:** 2026-08-02T10:18:43.561Z
+**Stopped at:** Phase 3 context gathered
+**Resume file:** .planning/phases/03-messaging-infrastructure/03-CONTEXT.md
 
 **To resume:** Read `.planning/ROADMAP.md` Phase 2 detail section and `.planning/PROJECT.md` Constraints to re-establish context. Phase 2 has no CONTEXT.md yet — start with `/gsd-discuss-phase 2`.
 
