@@ -18,6 +18,7 @@
 - [ ] **Phase 6: Report Consumer, State Projection & Current-State Reads** - Single-transaction consumer pipeline (event insert + guarded state UPDATE + CAS target + roll-up under FOR UPDATE lock); failure taxonomy enforced by reason via the retry wait-queue mechanism; first-terminal-wins; idempotency via unique-index; command.completed lifecycle event emitted; current-state read endpoints
 - [ ] **Phase 7: Event History Routes** - Ownership-scoped device event queries from MariaDB events table; time-range filtering; cursor pagination on (recorded_at, event_id); soft-deleted device history readable
 - [ ] **Phase 8: End-to-End Integration Tests** - Two-container testcontainers (MariaDB + RabbitMQ) full-pipeline verification: command-to-event round-trip, selector fan-out, partial failure roll-up, reaper, worker failure injection, retry wait-queue exhaustion to DLQ
+- [ ] **Phase 9: CI/CD Pipeline with Testcontainers** - GitHub Actions runs the test suite on push and pull_request; Testcontainers (`@testcontainers/mariadb`) provides an ephemeral MariaDB (mysql connection) instead of a GHA service container; `prisma migrate deploy` applies committed migrations to the container; a `test:ci` runner boots the container, injects `DATABASE_URL`, and spawns `node --test`. Local `npm test` (`.env.testing`) unchanged. CD (deploy) out of scope until a deploy target exists.
 
 ---
 
@@ -254,6 +255,31 @@
 | 6. Report Consumer, State Projection & Current-State Reads | 0/0 | Not started | - |
 | 7. Event History Routes | 0/0 | Not started | - |
 | 8. End-to-End Integration Tests | 0/0 | Not started | - |
+| 9. CI/CD Pipeline with Testcontainers | 0/0 | Not started | - |
+
+### Phase 9: CI/CD Pipeline with Testcontainers
+
+**Goal**: Every push and pull request automatically builds the project and runs the full test suite in GitHub Actions against an ephemeral, Testcontainers-provisioned MariaDB — so a red suite blocks merges and no developer machine or standing test database is involved. Local `npm test` continues to work exactly as today.
+
+**Depends on**: Nothing new (infrastructure — wraps the existing Phase 2 test suite; does not block later feature phases and can run before them)
+**Requirements**: CI-01 (suite runs on push + PR), CI-02 (ephemeral DB via Testcontainers, not a GHA service container), CI-03 (local `npm test` behavior preserved)
+
+**Success Criteria** (what must be TRUE):
+
+1. A workflow at `.github/workflows/ci.yml` triggers on `push` and `pull_request`, runs on `ubuntu-latest`, sets up Node (>=22), runs `npm ci`, then runs the CI test entrypoint. A failing test fails the job (non-zero exit).
+2. Tests in CI run against a MariaDB provided by `@testcontainers/mariadb` — no `services:` block, no external/standing database. The container's connection is handed to the suite as a `mysql://` `DATABASE_URL`.
+3. Committed Prisma migrations are applied to the fresh container DB via `prisma migrate deploy` before tests run; the committed driver-adapter client (`@prisma/adapter-mariadb`, pure-JS, no query-engine binary) runs unmodified on Linux CI.
+4. A `test:ci` npm script (backed by a runner that boots the container, injects `DATABASE_URL`/`JWT_SECRET`, applies migrations, spawns `node --test`, and always stops the container) is the single command CI invokes.
+5. Local `npm test` still loads `.env.testing` and is unchanged; the container path is entered only via an explicit flag (`USE_TESTCONTAINER_DB`), so the truncating suite can never be pointed at a real DB by a stray shell `DATABASE_URL`.
+6. `@testcontainers/mariadb` is added as a devDependency (blocking package-install approval obtained before install).
+
+**Out of scope**: CD / deployment (no deploy target exists yet — add when there is a host or registry). Caching beyond `actions/setup-node` npm cache. Matrix builds across Node versions.
+
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 09-01-PLAN.md — CI provisioning: gated `@testcontainers/mariadb` install + `test:ci` runner (ephemeral MariaDB → `prisma migrate deploy` → `node --test`), USE_TESTCONTAINER_DB guard in `src/test/env.ts`, and `.github/workflows/ci.yml` on push + PR (Wave 1)
 
 ---
 
