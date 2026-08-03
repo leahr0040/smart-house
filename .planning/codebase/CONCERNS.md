@@ -163,7 +163,7 @@
 - Improvement: Add indexes for `User.email` (already unique), `RefreshToken.expiresAt` (for cleanup queries), consider partial indexes for non-revoked tokens
 
 **No Connection Pool Tuning:**
-- Problem: `src/lib/prisma.ts` does not configure pool size, timeout, or connection acquisition strategy. Default MariaDB adapter settings may exhaust connections under load.
+- Problem: `src/lib/prisma.ts` does not configure pool size, timeout, or connection acquisition strategy. Default MySQL adapter settings may exhaust connections under load.
 - Files: `src/lib/prisma.ts`
 - Improvement: Define pool config in PrismaClient constructor; load pool size from environment variables
 

@@ -65,7 +65,9 @@ Required environment variables (`.env`): `DATABASE_URL`, `JWT_SECRET`, optionall
 
 ## Architecture
 
-The app is a **Fastify 5 REST API** backed by **MariaDB via Prisma** (driver-adapter pattern — `@prisma/adapter-mariadb`, not the default TCP connector).
+The app is a **Fastify 5 REST API** backed by **MySQL 8.0 via Prisma** (driver-adapter pattern — `@prisma/adapter-mariadb`, not the default TCP connector).
+
+> **The engine is MySQL, not MariaDB.** `@prisma/adapter-mariadb` is Prisma's one driver adapter for the entire MySQL/MariaDB family — it wraps the `mariadb` npm client, which speaks to MySQL servers too. Neither that package name nor the `PrismaMariaDb` class in `src/lib/prisma.ts` tells you the engine; `provider = "mysql"` and the `mysql://` URL scheme do. When choosing a container image, a CI database, or engine-specific SQL, use MySQL 8.0.
 
 ### Boot flow
 

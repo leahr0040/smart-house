@@ -13,7 +13,7 @@ owns the connection lifecycle and closes it on shutdown; idempotent provisioning
 of the full topology (per consumer queue `device_effects` / `device_reports`:
 main queue + `*.retry` wait queue + terminal `*.dlq`) on the two topic exchanges;
 a broker-readiness flag (`isBrokerReady()`); and graceful `POST /commands` → 503
-degradation while every MariaDB route (auth, CRUD, state, events) stays fully
+degradation while every MySQL route (auth, CRUD, state, events) stays fully
 available. Requirement: **MSG-01 only**.
 
 Not in scope (later phases): publishing effects (Phase 4), the simulated worker
@@ -198,8 +198,11 @@ resolve the open gray areas from this discussion.
 ## Deferred Ideas
 
 - **testcontainers-based real-broker fixture** — moved to Phase 8 (shared
-  suite-level fixture for MariaDB + RabbitMQ). Phase 3 uses a local broker via
-  `RABBITMQ_URL` instead.
+  suite-level fixture for MySQL + RabbitMQ). Phase 3 uses a local broker via
+  `RABBITMQ_URL` instead. When Phase 8 lands, its DB container must be
+  `@testcontainers/mysql` / `mysql:8.0` — the same module Phase 9 settles on.
+  The engine is MySQL, not MariaDB, regardless of the `@prisma/adapter-mariadb`
+  package name (see `.planning/codebase/INTEGRATIONS.md`).
 - **Env-configurable topology knobs** (TTL, x-death max, prefetch, names) — seam
   left open in `src/config/rabbitmq*`; add only when a real tuning need appears.
 - **Structured routing keys** — deferred until a second selective consumer needs
