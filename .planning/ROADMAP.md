@@ -18,7 +18,7 @@
 - [ ] **Phase 6: Report Consumer, State Projection & Current-State Reads** - Single-transaction consumer pipeline (event insert + guarded state UPDATE + CAS target + roll-up under FOR UPDATE lock); failure taxonomy enforced by reason via the retry wait-queue mechanism; first-terminal-wins; idempotency via unique-index; command.completed lifecycle event emitted; current-state read endpoints
 - [ ] **Phase 7: Event History Routes** - Ownership-scoped device event queries from MariaDB events table; time-range filtering; cursor pagination on (recorded_at, event_id); soft-deleted device history readable
 - [ ] **Phase 8: End-to-End Integration Tests** - Two-container testcontainers (MariaDB + RabbitMQ) full-pipeline verification: command-to-event round-trip, selector fan-out, partial failure roll-up, reaper, worker failure injection, retry wait-queue exhaustion to DLQ
-- [ ] **Phase 9: CI/CD Pipeline with Testcontainers** - GitHub Actions runs the test suite on push and pull_request; Testcontainers (`@testcontainers/mariadb`) provides an ephemeral MariaDB (mysql connection) instead of a GHA service container; `prisma migrate deploy` applies committed migrations to the container; a `test:ci` runner boots the container, injects `DATABASE_URL`, and spawns `node --test`. Local `npm test` (`.env.testing`) unchanged. CD (deploy) out of scope until a deploy target exists.
+- [x] **Phase 9: CI/CD Pipeline with Testcontainers** - GitHub Actions runs the test suite on push and pull_request; Testcontainers (`@testcontainers/mariadb`) provides an ephemeral MariaDB (mysql connection) instead of a GHA service container; `prisma migrate deploy` applies committed migrations to the container; a `test:ci` runner boots the container, injects `DATABASE_URL`, and spawns `node --test`. Local `npm test` (`.env.testing`) unchanged. CD (deploy) out of scope until a deploy target exists. (completed 2026-08-20)
 
 ---
 
@@ -255,7 +255,7 @@
 | 6. Report Consumer, State Projection & Current-State Reads | 0/0 | Not started | - |
 | 7. Event History Routes | 0/0 | Not started | - |
 | 8. End-to-End Integration Tests | 0/0 | Not started | - |
-| 9. CI/CD Pipeline with Testcontainers | 0/0 | Not started | - |
+| 9. CI/CD Pipeline with Testcontainers | 1/1 | Complete   | 2026-08-20 |
 
 ### Phase 9: CI/CD Pipeline with Testcontainers
 
@@ -275,11 +275,11 @@
 
 **Out of scope**: CD / deployment (no deploy target exists yet — add when there is a host or registry). Caching beyond `actions/setup-node` npm cache. Matrix builds across Node versions.
 
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 
-- [ ] 09-01-PLAN.md — CI provisioning: gated `@testcontainers/mariadb` install + `test:ci` runner (ephemeral MariaDB → `prisma migrate deploy` → `node --test`), USE_TESTCONTAINER_DB guard in `src/test/env.ts`, and `.github/workflows/ci.yml` on push + PR (Wave 1)
+- [x] 09-01-PLAN.md — CI provisioning: gated `@testcontainers/mariadb` install + `test:ci` runner (ephemeral MariaDB → `prisma migrate deploy` → `node --test`), USE_TESTCONTAINER_DB guard in `src/test/env.ts`, and `.github/workflows/ci.yml` on push + PR (Wave 1)
 
 ---
 
