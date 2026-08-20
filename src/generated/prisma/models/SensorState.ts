@@ -49,6 +49,7 @@ export type SensorStateMinAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type SensorStateMaxAggregateOutputType = {
@@ -60,6 +61,7 @@ export type SensorStateMaxAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type SensorStateCountAggregateOutputType = {
@@ -71,6 +73,7 @@ export type SensorStateCountAggregateOutputType = {
   lastEventId: number
   createdAt: number
   updatedAt: number
+  deletedAt: number
   _all: number
 }
 
@@ -98,6 +101,7 @@ export type SensorStateMinAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type SensorStateMaxAggregateInputType = {
@@ -109,6 +113,7 @@ export type SensorStateMaxAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type SensorStateCountAggregateInputType = {
@@ -120,6 +125,7 @@ export type SensorStateCountAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
   _all?: true
 }
 
@@ -218,6 +224,7 @@ export type SensorStateGroupByOutputType = {
   lastEventId: bigint | null
   createdAt: Date
   updatedAt: Date
+  deletedAt: Date | null
   _count: SensorStateCountAggregateOutputType | null
   _avg: SensorStateAvgAggregateOutputType | null
   _sum: SensorStateSumAggregateOutputType | null
@@ -252,6 +259,8 @@ export type SensorStateWhereInput = {
   lastEventId?: Prisma.BigIntNullableFilter<"SensorState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"SensorState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SensorState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"SensorState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }
 
 export type SensorStateOrderByWithRelationInput = {
@@ -263,6 +272,8 @@ export type SensorStateOrderByWithRelationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  device?: Prisma.DeviceOrderByWithRelationInput
   _relevance?: Prisma.SensorStateOrderByRelevanceInput
 }
 
@@ -278,6 +289,8 @@ export type SensorStateWhereUniqueInput = Prisma.AtLeast<{
   lastEventId?: Prisma.BigIntNullableFilter<"SensorState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"SensorState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"SensorState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"SensorState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }, "id" | "deviceId">
 
 export type SensorStateOrderByWithAggregationInput = {
@@ -289,6 +302,7 @@ export type SensorStateOrderByWithAggregationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.SensorStateCountOrderByAggregateInput
   _avg?: Prisma.SensorStateAvgOrderByAggregateInput
   _max?: Prisma.SensorStateMaxOrderByAggregateInput
@@ -308,17 +322,19 @@ export type SensorStateScalarWhereWithAggregatesInput = {
   lastEventId?: Prisma.BigIntNullableWithAggregatesFilter<"SensorState"> | bigint | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"SensorState"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"SensorState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"SensorState"> | Date | string | null
 }
 
 export type SensorStateCreateInput = {
   id?: bigint | number
-  deviceId: bigint | number
   reading: runtime.Decimal | runtime.DecimalJsLike | number | string
   unit: string
   lastEventAt?: Date | string | null
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  device: Prisma.DeviceCreateNestedOneWithoutSensorStateInput
 }
 
 export type SensorStateUncheckedCreateInput = {
@@ -330,17 +346,19 @@ export type SensorStateUncheckedCreateInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type SensorStateUpdateInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   reading?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  device?: Prisma.DeviceUpdateOneRequiredWithoutSensorStateNestedInput
 }
 
 export type SensorStateUncheckedUpdateInput = {
@@ -352,6 +370,7 @@ export type SensorStateUncheckedUpdateInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type SensorStateCreateManyInput = {
@@ -363,17 +382,18 @@ export type SensorStateCreateManyInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type SensorStateUpdateManyMutationInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   reading?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   unit?: Prisma.StringFieldUpdateOperationsInput | string
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type SensorStateUncheckedUpdateManyInput = {
@@ -385,6 +405,12 @@ export type SensorStateUncheckedUpdateManyInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type SensorStateNullableScalarRelationFilter = {
+  is?: Prisma.SensorStateWhereInput | null
+  isNot?: Prisma.SensorStateWhereInput | null
 }
 
 export type SensorStateOrderByRelevanceInput = {
@@ -402,6 +428,7 @@ export type SensorStateCountOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type SensorStateAvgOrderByAggregateInput = {
@@ -420,6 +447,7 @@ export type SensorStateMaxOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type SensorStateMinOrderByAggregateInput = {
@@ -431,6 +459,7 @@ export type SensorStateMinOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type SensorStateSumOrderByAggregateInput = {
@@ -440,12 +469,104 @@ export type SensorStateSumOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
 }
 
+export type SensorStateCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.SensorStateCreateWithoutDeviceInput, Prisma.SensorStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.SensorStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.SensorStateWhereUniqueInput
+}
+
+export type SensorStateUncheckedCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.SensorStateCreateWithoutDeviceInput, Prisma.SensorStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.SensorStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.SensorStateWhereUniqueInput
+}
+
+export type SensorStateUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.SensorStateCreateWithoutDeviceInput, Prisma.SensorStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.SensorStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.SensorStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.SensorStateWhereInput | boolean
+  delete?: Prisma.SensorStateWhereInput | boolean
+  connect?: Prisma.SensorStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SensorStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.SensorStateUpdateWithoutDeviceInput>, Prisma.SensorStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type SensorStateUncheckedUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.SensorStateCreateWithoutDeviceInput, Prisma.SensorStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.SensorStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.SensorStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.SensorStateWhereInput | boolean
+  delete?: Prisma.SensorStateWhereInput | boolean
+  connect?: Prisma.SensorStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SensorStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.SensorStateUpdateWithoutDeviceInput>, Prisma.SensorStateUncheckedUpdateWithoutDeviceInput>
+}
+
 export type DecimalFieldUpdateOperationsInput = {
   set?: runtime.Decimal | runtime.DecimalJsLike | number | string
   increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
   decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
   multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
+}
+
+export type SensorStateCreateWithoutDeviceInput = {
+  id?: bigint | number
+  reading: runtime.Decimal | runtime.DecimalJsLike | number | string
+  unit: string
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type SensorStateUncheckedCreateWithoutDeviceInput = {
+  id?: bigint | number
+  reading: runtime.Decimal | runtime.DecimalJsLike | number | string
+  unit: string
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type SensorStateCreateOrConnectWithoutDeviceInput = {
+  where: Prisma.SensorStateWhereUniqueInput
+  create: Prisma.XOR<Prisma.SensorStateCreateWithoutDeviceInput, Prisma.SensorStateUncheckedCreateWithoutDeviceInput>
+}
+
+export type SensorStateUpsertWithoutDeviceInput = {
+  update: Prisma.XOR<Prisma.SensorStateUpdateWithoutDeviceInput, Prisma.SensorStateUncheckedUpdateWithoutDeviceInput>
+  create: Prisma.XOR<Prisma.SensorStateCreateWithoutDeviceInput, Prisma.SensorStateUncheckedCreateWithoutDeviceInput>
+  where?: Prisma.SensorStateWhereInput
+}
+
+export type SensorStateUpdateToOneWithWhereWithoutDeviceInput = {
+  where?: Prisma.SensorStateWhereInput
+  data: Prisma.XOR<Prisma.SensorStateUpdateWithoutDeviceInput, Prisma.SensorStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type SensorStateUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  reading?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type SensorStateUncheckedUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  reading?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  unit?: Prisma.StringFieldUpdateOperationsInput | string
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -459,6 +580,8 @@ export type SensorStateSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["sensorState"]>
 
 
@@ -472,13 +595,19 @@ export type SensorStateSelectScalar = {
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }
 
-export type SensorStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "reading" | "unit" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt", ExtArgs["result"]["sensorState"]>
+export type SensorStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "reading" | "unit" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["sensorState"]>
+export type SensorStateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
+}
 
 export type $SensorStatePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "SensorState"
-  objects: {}
+  objects: {
+    device: Prisma.$DevicePayload<ExtArgs>
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
     deviceId: bigint
@@ -488,6 +617,7 @@ export type $SensorStatePayload<ExtArgs extends runtime.Types.Extensions.Interna
     lastEventId: bigint | null
     createdAt: Date
     updatedAt: Date
+    deletedAt: Date | null
   }, ExtArgs["result"]["sensorState"]>
   composites: {}
 }
@@ -828,6 +958,7 @@ readonly fields: SensorStateFieldRefs;
  */
 export interface Prisma__SensorStateClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  device<T extends Prisma.DeviceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DeviceDefaultArgs<ExtArgs>>): Prisma.Prisma__DeviceClient<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -865,6 +996,7 @@ export interface SensorStateFieldRefs {
   readonly lastEventId: Prisma.FieldRef<"SensorState", 'BigInt'>
   readonly createdAt: Prisma.FieldRef<"SensorState", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"SensorState", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"SensorState", 'DateTime'>
 }
     
 
@@ -881,6 +1013,10 @@ export type SensorStateFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the SensorState
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
   /**
    * Filter, which SensorState to fetch.
    */
@@ -900,6 +1036,10 @@ export type SensorStateFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Exten
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
+  /**
    * Filter, which SensorState to fetch.
    */
   where: Prisma.SensorStateWhereUniqueInput
@@ -917,6 +1057,10 @@ export type SensorStateFindFirstArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the SensorState
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
   /**
    * Filter, which SensorState to fetch.
    */
@@ -966,6 +1110,10 @@ export type SensorStateFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extens
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
+  /**
    * Filter, which SensorState to fetch.
    */
   where?: Prisma.SensorStateWhereInput
@@ -1013,6 +1161,10 @@ export type SensorStateFindManyArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the SensorState
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
   /**
    * Filter, which SensorStates to fetch.
    */
@@ -1062,6 +1214,10 @@ export type SensorStateCreateArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
+  /**
    * The data needed to create a SensorState.
    */
   data: Prisma.XOR<Prisma.SensorStateCreateInput, Prisma.SensorStateUncheckedCreateInput>
@@ -1090,6 +1246,10 @@ export type SensorStateUpdateArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the SensorState
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
   /**
    * The data needed to update a SensorState.
    */
@@ -1131,6 +1291,10 @@ export type SensorStateUpsertArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
+  /**
    * The filter to search for the SensorState to update in case it exists.
    */
   where: Prisma.SensorStateWhereUniqueInput
@@ -1156,6 +1320,10 @@ export type SensorStateDeleteArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the SensorState
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
   /**
    * Filter which SensorState to delete.
    */
@@ -1188,4 +1356,8 @@ export type SensorStateDefaultArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the SensorState
    */
   omit?: Prisma.SensorStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
 }

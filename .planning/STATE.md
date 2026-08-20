@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: Entity CRUD & Multi-Tenancy
+current_phase: 09
+current_phase_name: ci-cd-pipeline-with-testcontainers
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-07-09T14:06:55.668Z"
+stopped_at: Phase 3 context gathered
+last_updated: "2026-08-03T18:22:26.927Z"
 progress:
-  total_phases: 8
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 13
+  total_phases: 9
+  completed_phases: 2
+  total_plans: 7
+  completed_plans: 6
+  percent: 22
 ---
 
 # Project State — Smart House
@@ -25,16 +25,16 @@ progress:
 
 **Core Value:** The system always reflects the true current state of the house AND preserves a complete, queryable history of every event — so nothing about the home's behavior is ever lost.
 
-**Current Focus:** Phase 02 — Entity CRUD & Multi-Tenancy
+**Current Focus:** Phase 09 — ci-cd-pipeline-with-testcontainers
 
 ---
 
 ## Current Position
 
 **Milestone:** 1 — Event-Driven Smart-Home Platform
-**Phase:** 2 — Entity CRUD & Multi-Tenancy
-**Plan:** Not started
-**Status:** Ready to execute
+**Phase:** 09 (ci-cd-pipeline-with-testcontainers) — EXECUTING
+**Plan:** 1 of 1
+**Status:** Executing Phase 09
 
 ```
 Phase 1 [x] Complete
@@ -64,6 +64,7 @@ Phase 8 [ ] Not started
 
 ---
 | Phase 01 P02 | 25min | 3 tasks | 3 files |
+| Phase 02 P01 | 2h | 4 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -86,7 +87,7 @@ Phase 8 [ ] Not started
 | `user_id` denormalized on Room, Device, Command | Ownership checks without joining through the hierarchy |
 | Action vocabulary in TypeBox registry (`device-actions.ts`), registry-seamed | Static types + free validation; DB-backed vocabulary only if dynamic device types become a requirement |
 | Eager state detail row at device creation | Consumer hot path is only ever a guarded UPDATE — never a create |
-| Polymorphic morph for typed state (`state_type` + `state_id` → per-type detail tables) | No JSON column; single current facet per device |
+| Typed state via per-type detail tables selected by `device_type` (detail row keyed on unique `device_id`; no morph pointer) | No JSON column; single current facet per device |
 
 ### Architecture Constraints
 
@@ -120,6 +121,10 @@ Start with `/gsd-discuss-phase 2` to gather context, then `/gsd-plan-phase 2`. C
 - [ ] Phase 2: expose `public_id` not internal `id`; wire NanoID generation seam; settle BigInt-serialization strategy
 - [ ] Add `RABBITMQ_URL` to `.env.example` during Phase 3
 
+### Roadmap Evolution
+
+- Phase 9 added: CI/CD Pipeline with Testcontainers — GitHub Actions runs the suite on push/PR against an ephemeral Testcontainers MariaDB; CD deferred until a deploy target exists.
+
 ### Blockers
 
 None.
@@ -128,9 +133,9 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-07-08T20:39:18.763Z
-**Stopped at:** Phase 2 context gathered
-**Resume file:** .planning/phases/02-entity-crud-multi-tenancy/02-CONTEXT.md
+**Last session:** 2026-08-02T10:18:43.561Z
+**Stopped at:** Phase 3 context gathered
+**Resume file:** .planning/phases/03-messaging-infrastructure/03-CONTEXT.md
 
 **To resume:** Read `.planning/ROADMAP.md` Phase 2 detail section and `.planning/PROJECT.md` Constraints to re-establish context. Phase 2 has no CONTEXT.md yet — start with `/gsd-discuss-phase 2`.
 
@@ -151,3 +156,6 @@ None.
 - [Phase 01]: Ten new domain models added with BigInt autoincrement PKs; public_id (NanoID-shaped VarChar(21)) shaped on House/Room/Device/Command only, generator deferred to Phase 2
 - [Phase 01]: Events table carries a separate ordering BigInt id and idempotency Char(36) event_id (D-12) — never interchanged for ordering or dedup
 - [Phase 01]: No native DB enums/CHECK/min-max anywhere in the new schema; all value/range/vocabulary rules deferred to TypeBox in later phases (D-06)
+- [Phase 02-01]: public_id typing resolved with @default(nanoid(21)) as a TYPE-LEVEL AFFORDANCE only — column stays NOT NULL, app-side CSPRNG hook supplies every value (T-2-01), emits no SQL DEFAULT so the DB is untouched
+- [Phase 02-01]: DB-touching tests must call after(closeDb) — Prisma's pool keeps the event loop alive and hangs npm test forever
+- [Phase 02-01]: test data via @faker-js/faker factories, uuid suffix on emails (users.email is @unique; faker's pool repeats and would throw P2002)

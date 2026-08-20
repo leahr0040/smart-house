@@ -27,7 +27,7 @@ Tests use Node built-in runner (`node:test` + `node:assert`), live as `.ts` in `
 
 - **Not fastify-cli.** `src/server.ts` manually bootstraps Fastify and registers `app.ts` plugin. Dev uses `tsx watch`, prod runs compiled `dist/src/server.js`.
 - **app.ts** registers `@fastify/cookie`, then auto-loads `src/plugins/` and `src/routes/` via `@fastify/autoload`.
-- **DB**: Prisma 7 + MariaDB via `@prisma/adapter-mariadb`. Config in `prisma.config.ts` (Prisma 7 `defineConfig`). Client generated to `src/generated/prisma/`; import from `../../generated/prisma/client`.
+- **DB**: Prisma 7 + **MySQL 8.0**. The driver adapter is `@prisma/adapter-mariadb` — that is Prisma's single adapter for the whole MySQL/MariaDB family (it wraps the `mariadb` npm client, which connects to MySQL servers). **The package name and the `PrismaMariaDb` class are not the engine: this project is MySQL, not MariaDB.** Anything picking a container image, a Docker service, or a CI database must use MySQL. Config in `prisma.config.ts` (Prisma 7 `defineConfig`). Client generated to `src/generated/prisma/`; import from `../../generated/prisma/client`.
 - **Auth flow**: JWT access token (15min, stateless) + refresh token rotation (7-day httpOnly cookie, path `/auth`). Decorators on `fastify`: `authenticate`, `generateTokens`, `verifyRefreshToken`, `revokeRefreshToken`. Implemented in `src/plugins/auth.ts`.
 - **Validation**: Fastify JSON Schema via `schema` option on routes (e.g. `src/routes/auth/schemas.ts`), **not** Zod.
 - **Error handling**: Custom handler in `src/plugins/error-handler.ts` returns `{ error, message, statusCode }`. `@fastify/sensible` provides `httpErrors` helpers.

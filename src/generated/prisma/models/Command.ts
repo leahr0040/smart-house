@@ -280,7 +280,7 @@ export type CommandScalarWhereWithAggregatesInput = {
 
 export type CommandCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   status?: string
   createdAt?: Date | string
@@ -289,7 +289,7 @@ export type CommandCreateInput = {
 
 export type CommandUncheckedCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   status?: string
   createdAt?: Date | string
@@ -316,7 +316,7 @@ export type CommandUncheckedUpdateInput = {
 
 export type CommandCreateManyInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   status?: string
   createdAt?: Date | string

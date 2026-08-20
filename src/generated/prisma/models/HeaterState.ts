@@ -49,6 +49,7 @@ export type HeaterStateMinAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type HeaterStateMaxAggregateOutputType = {
@@ -60,6 +61,7 @@ export type HeaterStateMaxAggregateOutputType = {
   lastEventId: bigint | null
   createdAt: Date | null
   updatedAt: Date | null
+  deletedAt: Date | null
 }
 
 export type HeaterStateCountAggregateOutputType = {
@@ -71,6 +73,7 @@ export type HeaterStateCountAggregateOutputType = {
   lastEventId: number
   createdAt: number
   updatedAt: number
+  deletedAt: number
   _all: number
 }
 
@@ -98,6 +101,7 @@ export type HeaterStateMinAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type HeaterStateMaxAggregateInputType = {
@@ -109,6 +113,7 @@ export type HeaterStateMaxAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
 }
 
 export type HeaterStateCountAggregateInputType = {
@@ -120,6 +125,7 @@ export type HeaterStateCountAggregateInputType = {
   lastEventId?: true
   createdAt?: true
   updatedAt?: true
+  deletedAt?: true
   _all?: true
 }
 
@@ -218,6 +224,7 @@ export type HeaterStateGroupByOutputType = {
   lastEventId: bigint | null
   createdAt: Date
   updatedAt: Date
+  deletedAt: Date | null
   _count: HeaterStateCountAggregateOutputType | null
   _avg: HeaterStateAvgAggregateOutputType | null
   _sum: HeaterStateSumAggregateOutputType | null
@@ -252,6 +259,8 @@ export type HeaterStateWhereInput = {
   lastEventId?: Prisma.BigIntNullableFilter<"HeaterState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"HeaterState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"HeaterState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"HeaterState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }
 
 export type HeaterStateOrderByWithRelationInput = {
@@ -263,6 +272,8 @@ export type HeaterStateOrderByWithRelationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  device?: Prisma.DeviceOrderByWithRelationInput
 }
 
 export type HeaterStateWhereUniqueInput = Prisma.AtLeast<{
@@ -277,6 +288,8 @@ export type HeaterStateWhereUniqueInput = Prisma.AtLeast<{
   lastEventId?: Prisma.BigIntNullableFilter<"HeaterState"> | bigint | number | null
   createdAt?: Prisma.DateTimeFilter<"HeaterState"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"HeaterState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"HeaterState"> | Date | string | null
+  device?: Prisma.XOR<Prisma.DeviceScalarRelationFilter, Prisma.DeviceWhereInput>
 }, "id" | "deviceId">
 
 export type HeaterStateOrderByWithAggregationInput = {
@@ -288,6 +301,7 @@ export type HeaterStateOrderByWithAggregationInput = {
   lastEventId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.HeaterStateCountOrderByAggregateInput
   _avg?: Prisma.HeaterStateAvgOrderByAggregateInput
   _max?: Prisma.HeaterStateMaxOrderByAggregateInput
@@ -307,17 +321,19 @@ export type HeaterStateScalarWhereWithAggregatesInput = {
   lastEventId?: Prisma.BigIntNullableWithAggregatesFilter<"HeaterState"> | bigint | number | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"HeaterState"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"HeaterState"> | Date | string
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"HeaterState"> | Date | string | null
 }
 
 export type HeaterStateCreateInput = {
   id?: bigint | number
-  deviceId: bigint | number
   isOn?: boolean
   targetTemp: number
   lastEventAt?: Date | string | null
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
+  device: Prisma.DeviceCreateNestedOneWithoutHeaterStateInput
 }
 
 export type HeaterStateUncheckedCreateInput = {
@@ -329,17 +345,19 @@ export type HeaterStateUncheckedCreateInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type HeaterStateUpdateInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  device?: Prisma.DeviceUpdateOneRequiredWithoutHeaterStateNestedInput
 }
 
 export type HeaterStateUncheckedUpdateInput = {
@@ -351,6 +369,7 @@ export type HeaterStateUncheckedUpdateInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type HeaterStateCreateManyInput = {
@@ -362,17 +381,18 @@ export type HeaterStateCreateManyInput = {
   lastEventId?: bigint | number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  deletedAt?: Date | string | null
 }
 
 export type HeaterStateUpdateManyMutationInput = {
   id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
-  deviceId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
   lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type HeaterStateUncheckedUpdateManyInput = {
@@ -384,6 +404,12 @@ export type HeaterStateUncheckedUpdateManyInput = {
   lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type HeaterStateNullableScalarRelationFilter = {
+  is?: Prisma.HeaterStateWhereInput | null
+  isNot?: Prisma.HeaterStateWhereInput | null
 }
 
 export type HeaterStateCountOrderByAggregateInput = {
@@ -395,6 +421,7 @@ export type HeaterStateCountOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type HeaterStateAvgOrderByAggregateInput = {
@@ -413,6 +440,7 @@ export type HeaterStateMaxOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type HeaterStateMinOrderByAggregateInput = {
@@ -424,6 +452,7 @@ export type HeaterStateMinOrderByAggregateInput = {
   lastEventId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
 }
 
 export type HeaterStateSumOrderByAggregateInput = {
@@ -431,6 +460,98 @@ export type HeaterStateSumOrderByAggregateInput = {
   deviceId?: Prisma.SortOrder
   targetTemp?: Prisma.SortOrder
   lastEventId?: Prisma.SortOrder
+}
+
+export type HeaterStateCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.HeaterStateCreateWithoutDeviceInput, Prisma.HeaterStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.HeaterStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.HeaterStateWhereUniqueInput
+}
+
+export type HeaterStateUncheckedCreateNestedOneWithoutDeviceInput = {
+  create?: Prisma.XOR<Prisma.HeaterStateCreateWithoutDeviceInput, Prisma.HeaterStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.HeaterStateCreateOrConnectWithoutDeviceInput
+  connect?: Prisma.HeaterStateWhereUniqueInput
+}
+
+export type HeaterStateUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.HeaterStateCreateWithoutDeviceInput, Prisma.HeaterStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.HeaterStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.HeaterStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.HeaterStateWhereInput | boolean
+  delete?: Prisma.HeaterStateWhereInput | boolean
+  connect?: Prisma.HeaterStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.HeaterStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.HeaterStateUpdateWithoutDeviceInput>, Prisma.HeaterStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type HeaterStateUncheckedUpdateOneWithoutDeviceNestedInput = {
+  create?: Prisma.XOR<Prisma.HeaterStateCreateWithoutDeviceInput, Prisma.HeaterStateUncheckedCreateWithoutDeviceInput>
+  connectOrCreate?: Prisma.HeaterStateCreateOrConnectWithoutDeviceInput
+  upsert?: Prisma.HeaterStateUpsertWithoutDeviceInput
+  disconnect?: Prisma.HeaterStateWhereInput | boolean
+  delete?: Prisma.HeaterStateWhereInput | boolean
+  connect?: Prisma.HeaterStateWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.HeaterStateUpdateToOneWithWhereWithoutDeviceInput, Prisma.HeaterStateUpdateWithoutDeviceInput>, Prisma.HeaterStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type HeaterStateCreateWithoutDeviceInput = {
+  id?: bigint | number
+  isOn?: boolean
+  targetTemp: number
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type HeaterStateUncheckedCreateWithoutDeviceInput = {
+  id?: bigint | number
+  isOn?: boolean
+  targetTemp: number
+  lastEventAt?: Date | string | null
+  lastEventId?: bigint | number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  deletedAt?: Date | string | null
+}
+
+export type HeaterStateCreateOrConnectWithoutDeviceInput = {
+  where: Prisma.HeaterStateWhereUniqueInput
+  create: Prisma.XOR<Prisma.HeaterStateCreateWithoutDeviceInput, Prisma.HeaterStateUncheckedCreateWithoutDeviceInput>
+}
+
+export type HeaterStateUpsertWithoutDeviceInput = {
+  update: Prisma.XOR<Prisma.HeaterStateUpdateWithoutDeviceInput, Prisma.HeaterStateUncheckedUpdateWithoutDeviceInput>
+  create: Prisma.XOR<Prisma.HeaterStateCreateWithoutDeviceInput, Prisma.HeaterStateUncheckedCreateWithoutDeviceInput>
+  where?: Prisma.HeaterStateWhereInput
+}
+
+export type HeaterStateUpdateToOneWithWhereWithoutDeviceInput = {
+  where?: Prisma.HeaterStateWhereInput
+  data: Prisma.XOR<Prisma.HeaterStateUpdateWithoutDeviceInput, Prisma.HeaterStateUncheckedUpdateWithoutDeviceInput>
+}
+
+export type HeaterStateUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+}
+
+export type HeaterStateUncheckedUpdateWithoutDeviceInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  isOn?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  targetTemp?: Prisma.IntFieldUpdateOperationsInput | number
+  lastEventAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastEventId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -444,6 +565,8 @@ export type HeaterStateSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["heaterState"]>
 
 
@@ -457,13 +580,19 @@ export type HeaterStateSelectScalar = {
   lastEventId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  deletedAt?: boolean
 }
 
-export type HeaterStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "isOn" | "targetTemp" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt", ExtArgs["result"]["heaterState"]>
+export type HeaterStateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "deviceId" | "isOn" | "targetTemp" | "lastEventAt" | "lastEventId" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["heaterState"]>
+export type HeaterStateInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  device?: boolean | Prisma.DeviceDefaultArgs<ExtArgs>
+}
 
 export type $HeaterStatePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "HeaterState"
-  objects: {}
+  objects: {
+    device: Prisma.$DevicePayload<ExtArgs>
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
     deviceId: bigint
@@ -473,6 +602,7 @@ export type $HeaterStatePayload<ExtArgs extends runtime.Types.Extensions.Interna
     lastEventId: bigint | null
     createdAt: Date
     updatedAt: Date
+    deletedAt: Date | null
   }, ExtArgs["result"]["heaterState"]>
   composites: {}
 }
@@ -813,6 +943,7 @@ readonly fields: HeaterStateFieldRefs;
  */
 export interface Prisma__HeaterStateClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  device<T extends Prisma.DeviceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DeviceDefaultArgs<ExtArgs>>): Prisma.Prisma__DeviceClient<runtime.Types.Result.GetResult<Prisma.$DevicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -850,6 +981,7 @@ export interface HeaterStateFieldRefs {
   readonly lastEventId: Prisma.FieldRef<"HeaterState", 'BigInt'>
   readonly createdAt: Prisma.FieldRef<"HeaterState", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"HeaterState", 'DateTime'>
+  readonly deletedAt: Prisma.FieldRef<"HeaterState", 'DateTime'>
 }
     
 
@@ -866,6 +998,10 @@ export type HeaterStateFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the HeaterState
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
   /**
    * Filter, which HeaterState to fetch.
    */
@@ -885,6 +1021,10 @@ export type HeaterStateFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Exten
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
+  /**
    * Filter, which HeaterState to fetch.
    */
   where: Prisma.HeaterStateWhereUniqueInput
@@ -902,6 +1042,10 @@ export type HeaterStateFindFirstArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the HeaterState
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
   /**
    * Filter, which HeaterState to fetch.
    */
@@ -951,6 +1095,10 @@ export type HeaterStateFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extens
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
+  /**
    * Filter, which HeaterState to fetch.
    */
   where?: Prisma.HeaterStateWhereInput
@@ -998,6 +1146,10 @@ export type HeaterStateFindManyArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the HeaterState
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
   /**
    * Filter, which HeaterStates to fetch.
    */
@@ -1047,6 +1199,10 @@ export type HeaterStateCreateArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
+  /**
    * The data needed to create a HeaterState.
    */
   data: Prisma.XOR<Prisma.HeaterStateCreateInput, Prisma.HeaterStateUncheckedCreateInput>
@@ -1075,6 +1231,10 @@ export type HeaterStateUpdateArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the HeaterState
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
   /**
    * The data needed to update a HeaterState.
    */
@@ -1116,6 +1276,10 @@ export type HeaterStateUpsertArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
+  /**
    * The filter to search for the HeaterState to update in case it exists.
    */
   where: Prisma.HeaterStateWhereUniqueInput
@@ -1141,6 +1305,10 @@ export type HeaterStateDeleteArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the HeaterState
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
   /**
    * Filter which HeaterState to delete.
    */
@@ -1173,4 +1341,8 @@ export type HeaterStateDefaultArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the HeaterState
    */
   omit?: Prisma.HeaterStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
 }

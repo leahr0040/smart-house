@@ -58,13 +58,13 @@
 │                    Data Layer (Prisma ORM)                               │
 │   `src/lib/prisma.ts` (singleton) + `src/generated/prisma/` (client)   │
 │                                                                          │
-│   - PrismaMariaDb adapter for MariaDB connection                        │
+│   - PrismaMariaDb adapter for MySQL connection                        │
 │   - User & RefreshToken models                                          │
 └─────────────────────┬─────────────────────────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                      MariaDB Database                                    │
+│                      MySQL Database                                    │
 │                  (via connection pool)                                   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -122,8 +122,8 @@
 **Data Layer:**
 - Purpose: Database abstraction and access.
 - Location: `src/lib/prisma.ts` (singleton initialization); `src/generated/prisma/` (generated client types).
-- Contains: Prisma client with MariaDB adapter, auto-generated query builder methods.
-- Depends on: MariaDB driver (via `@prisma/adapter-mariadb`), connection string.
+- Contains: Prisma client with MySQL adapter, auto-generated query builder methods.
+- Depends on: MySQL driver (via `@prisma/adapter-mariadb`), connection string.
 - Used by: Services.
 
 **Environment Layer:**
@@ -173,7 +173,7 @@
 **State Management:**
 - **Request state**: Transient; passed through request object and local variables.
 - **Global state**: Prisma singleton (`src/lib/prisma.ts`); Fastify instance (shared via plugin decorators).
-- **Persistent state**: User credentials and refresh token hashes stored in MariaDB.
+- **Persistent state**: User credentials and refresh token hashes stored in MySQL.
 - **Session state**: Refresh token represents a session; revocation marks it as inactive.
 
 ## Key Abstractions
@@ -229,7 +229,7 @@
 - **Circular imports:** None detected. Layer dependency is strict: routes → services → prisma; plugins → env.
 - **AutoLoad ordering:** Plugins load alphabetically before routes alphabetically. Explicit dependency requires filename prefixing (e.g., `1-auth.ts` before `2-routes.ts`), not currently used.
 - **Cookie scope:** Refresh token cookie scoped to `/auth` path; only `/auth/*` routes can access it.
-- **Database:** MariaDB via `@prisma/adapter-mariadb` driver (not TCP connector); migration-based schema management.
+- **Database:** MySQL 8.0 via the `@prisma/adapter-mariadb` driver (not TCP connector); migration-based schema management. The adapter is Prisma's shared MySQL/MariaDB driver — its name says nothing about the engine, which is MySQL.
 
 ## Anti-Patterns
 

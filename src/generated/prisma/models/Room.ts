@@ -336,7 +336,7 @@ export type RoomScalarWhereWithAggregatesInput = {
 
 export type RoomCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   houseId: bigint | number
   userId: bigint | number
   name: string
@@ -349,7 +349,7 @@ export type RoomCreateInput = {
 
 export type RoomUncheckedCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   houseId: bigint | number
   userId: bigint | number
   name: string
@@ -388,7 +388,7 @@ export type RoomUncheckedUpdateInput = {
 
 export type RoomCreateManyInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   houseId: bigint | number
   userId: bigint | number
   name: string

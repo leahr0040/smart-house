@@ -44,8 +44,6 @@ CREATE TABLE `devices` (
     `device_type` VARCHAR(191) NOT NULL,
     `manufacturer` VARCHAR(191) NULL,
     `model` VARCHAR(191) NULL,
-    `state_type` VARCHAR(191) NULL,
-    `state_id` BIGINT NULL,
     `deleted_at` DATETIME(3) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
@@ -54,7 +52,6 @@ CREATE TABLE `devices` (
     INDEX `devices_user_id_idx`(`user_id`),
     INDEX `devices_room_id_idx`(`room_id`),
     INDEX `devices_house_id_idx`(`house_id`),
-    INDEX `devices_state_id_idx`(`state_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -96,6 +93,7 @@ CREATE TABLE `light_states` (
     `last_event_id` BIGINT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `deleted_at` DATETIME(3) NULL,
 
     UNIQUE INDEX `light_states_device_id_key`(`device_id`),
     PRIMARY KEY (`id`)
@@ -112,6 +110,7 @@ CREATE TABLE `ac_states` (
     `last_event_id` BIGINT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `deleted_at` DATETIME(3) NULL,
 
     UNIQUE INDEX `ac_states_device_id_key`(`device_id`),
     PRIMARY KEY (`id`)
@@ -127,6 +126,7 @@ CREATE TABLE `heater_states` (
     `last_event_id` BIGINT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `deleted_at` DATETIME(3) NULL,
 
     UNIQUE INDEX `heater_states_device_id_key`(`device_id`),
     PRIMARY KEY (`id`)
@@ -142,6 +142,7 @@ CREATE TABLE `sensor_states` (
     `last_event_id` BIGINT NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
+    `deleted_at` DATETIME(3) NULL,
 
     UNIQUE INDEX `sensor_states_device_id_key`(`device_id`),
     PRIMARY KEY (`id`)

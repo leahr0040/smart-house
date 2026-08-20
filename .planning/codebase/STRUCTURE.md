@@ -200,7 +200,7 @@ smart-house/
 **.env:**
 - Purpose: Local environment variables.
 - Committed: No; in `.gitignore`. Create locally.
-- Required: `DATABASE_URL` (MariaDB connection string) and `JWT_SECRET`.
+- Required: `DATABASE_URL` (MySQL connection string) and `JWT_SECRET`.
 - Example:
   ```
   DATABASE_URL=mysql://user:password@localhost:3306/smart_house

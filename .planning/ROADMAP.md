@@ -11,13 +11,14 @@
 ## Phases
 
 - [x] **Phase 1: Schema & Data Conventions** - Complete Prisma schema including the append-only events table (with entity_type + nullable device_id for command-lifecycle rows); snake_case @@map; soft-delete; BigInt autoincrement PKs + NanoID public_id (non-enumerable external IDs); user_id denormalization; polymorphic morph tables; last_event_id (BigInt) column for tuple guard (completed 2026-07-07)
-- [ ] **Phase 2: Entity CRUD & Multi-Tenancy** - House/Room/Device CRUD routes and services; ownership-embedded queries; multi-tenancy enforcement; soft-delete filters; auth boundary; eager state detail row at device creation
+- [x] **Phase 2: Entity CRUD & Multi-Tenancy** - House/Room/Device CRUD routes and services; ownership-embedded queries; multi-tenancy enforcement; soft-delete filters; auth boundary; eager state detail row at device creation (completed 2026-07-30)
 - [ ] **Phase 3: Messaging Infrastructure** - RabbitMQ singleton and Fastify plugin; topic exchange topology provisioned on boot — per consumer queue (device_effects, device_reports): main queue, `*.retry` wait queue (TTL backoff, dead-letters back to main), terminal `*.dlq`; background connect (no startup block); 503 degradation for POST /commands when broker down; auth/CRUD/state/event reads (all MariaDB) unaffected
 - [ ] **Phase 4: Command Handler & Dispatcher** - Two-tier validation (acceptance sync → 400 including action↔type for explicit-device-id selectors; all device-type business logic → type validation async); TypeBox action schemas; selector resolution; persist-then-publish (one transaction, fan-out cap ~200); command status received/pending/done/partially_failed/failed; command-lifecycle events emitted (received/resolved/rejected); CMD-08 type validation async contract; background reaper
 - [ ] **Phase 5: Simulated Device Worker** - Standalone worker process (npm run worker) that consumes effects, applies them, classifies failures by reason (determined domain outcome → explicit failure report published and acked; transient/offline → nack (no requeue) into the `*.retry` wait queue, `x-death`-bounded → terminal DLQ; poison → nack no-requeue → DLQ directly)
 - [ ] **Phase 6: Report Consumer, State Projection & Current-State Reads** - Single-transaction consumer pipeline (event insert + guarded state UPDATE + CAS target + roll-up under FOR UPDATE lock); failure taxonomy enforced by reason via the retry wait-queue mechanism; first-terminal-wins; idempotency via unique-index; command.completed lifecycle event emitted; current-state read endpoints
 - [ ] **Phase 7: Event History Routes** - Ownership-scoped device event queries from MariaDB events table; time-range filtering; cursor pagination on (recorded_at, event_id); soft-deleted device history readable
 - [ ] **Phase 8: End-to-End Integration Tests** - Two-container testcontainers (MariaDB + RabbitMQ) full-pipeline verification: command-to-event round-trip, selector fan-out, partial failure roll-up, reaper, worker failure injection, retry wait-queue exhaustion to DLQ
+- [x] **Phase 9: CI/CD Pipeline with Testcontainers** - GitHub Actions runs the test suite on push and pull_request; Testcontainers (`@testcontainers/mariadb`) provides an ephemeral MariaDB (mysql connection) instead of a GHA service container; `prisma migrate deploy` applies committed migrations to the container; a `test:ci` runner boots the container, injects `DATABASE_URL`, and spawns `node --test`. Local `npm test` (`.env.testing`) unchanged. CD (deploy) out of scope until a deploy target exists. (completed 2026-08-20)
 
 ---
 
@@ -34,7 +35,7 @@
 1. `prisma migrate dev` applies cleanly; rename migrations for the existing `User` and `RefreshToken` tables produce `users` and `refresh_tokens` in MariaDB; all new tables and columns are snake_case via `@map`/`@@map`. The generated migration SQL must be hand-verified to emit `RENAME TABLE`, not DROP+CREATE — no data loss.
 2. House, Room, Device, Command, CommandTarget, and per-type state detail tables (`light_states`, `ac_states`, `heater_states`, `sensor_states`) are present with `BigInt @default(autoincrement())` PKs; House/Room/Device/Command carry a NanoID `public_id` (`@unique`); Room and Device carry a denormalized `user_id` (BigInt) column; `deleted_at` exists on User, House, Room, and Device. The existing `User`/`RefreshToken` PKs (and `refresh_tokens.user_id` FK) widen Int→BigInt for uniform integer keys.
 3. The append-only `events` table is in the schema with: a BigInt `id` PK (insertion-ordered — the cursor/tuple-guard ordering key); a deterministic `event_id` (uuidv5, UNIQUE index — the idempotency key, never used for ordering); `entity_type` (enum: device | command), `source`, `event_kind`, `device_id` (nullable — null for command-lifecycle rows), `device_type`, `command_id` (nullable), `snapshot`, `recorded_at`; a compound index on `(device_id, recorded_at)`. The `entity_type` and nullable `device_id` columns are present from day one so command-lifecycle milestone rows (`command.received`, `command.resolved`, `command.rejected`, `command.completed`) can be written in the same table without schema changes.
-4. Per-type state detail tables carry `last_event_at` and `last_event_id` (BigInt, references `events.id`) columns for the tuple guard; `state_type` and `state_id` morph columns are on Device; CommandTarget carries `deadline_at`; Command carries a `status` column that supports `received`, `rejected`, `pending`, `done`, `partially_failed`, `failed`, and `no_targets` values.
+4. Per-type state detail tables carry `last_event_at` and `last_event_id` (BigInt, references `events.id`) columns for the tuple guard, and a unique `device_id` linking back to the owning device (which detail table applies is selected by `device_type` — no morph pointer on Device); CommandTarget carries `deadline_at`; Command carries a `status` column that supports `received`, `rejected`, `pending`, `done`, `partially_failed`, `failed`, and `no_targets` values.
 5. The NanoID `public_id` generation seam is confirmed and documented: NanoID has no Prisma native default, so `public_id` is generated app-side at create time (the generator lands in Phase 2; Phase 1 only shapes the `@unique` column, sized for a 21-char NanoID). The former uuid-v7 storage spike is obsolete — no internal id uses `@default(uuid())`.
 6. `npm run build` compiles with zero type errors; `npm test` passes all existing auth tests; `prisma migrate dev` exits 0 (compile + migration smoke-check).
 
@@ -67,7 +68,7 @@
 1. Authenticated user can create, list, view, update, and soft-delete their own houses; `GET /houses/:id` for a house owned by a different user returns 404, not 403.
 2. Authenticated user can create, list, update, and soft-delete rooms within a house they own; soft-deleted rooms and houses are excluded from all list responses.
 3. Authenticated user can add a device of type light/AC/heater/sensor to a room they own, list and view devices by room and by house, update device metadata, and soft-delete a device.
-4. When a device is created, a per-type state detail row is immediately inserted with default values; `state_type` and `state_id` are fixed at creation time; no state row is created anywhere else in v1.
+4. When a device is created, a per-type state detail row (selected by `device_type`) is immediately inserted with default values; the device's type is fixed at creation time; no state row is created anywhere else in v1.
 5. TypeBox schema validates the device type on creation; an unknown device type returns 400; every new endpoint returns 401 without a valid JWT.
 6. A second authenticated user receives 404 for all resources they do not own; soft-deleted rows are excluded from all reads; a soft-deleted user cannot log in.
 
@@ -77,17 +78,17 @@
 - Tests (red): per-endpoint unit tests via `app.inject()`; second-user 404 fixture for every ownership-sensitive route; soft-delete exclusion tests; 401 boundary tests; eager-state-row creation test (device created → state detail row exists with defaults); `npm run build && npm test` must compile and run red.
 - Implement: service functions with ownership-embedded Prisma queries (`where: { id, userId }`); device creation service creates state detail row in the same transaction; batched `IN` for multi-device list; soft-delete filters on all reads; route handlers calling services.
 
-**Plans**: 4 plans
+**Plans**: 4/4 plans complete
 
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Toolchain & public_id seam: install TypeBox/NanoID, regenerate Prisma client + re-apply dev DB (house_id), public_id create hook, test fixtures + soft-deleted-user-cannot-login test (Wave 1)
+- [x] 02-01-PLAN.md — Toolchain & public_id seam: install TypeBox/NanoID, regenerate Prisma client + re-apply dev DB (house_id), public_id create hook, test fixtures + soft-deleted-user-cannot-login test (Wave 1)
 
 **Wave 2** *(parallel — disjoint files; each depends on 02-01)*
 
-- [ ] 02-02-PLAN.md — House CRUD slice: create/list/view/update/soft-delete + cascade to rooms+devices; multi-tenancy 404 + 401 (Wave 2)
-- [ ] 02-03-PLAN.md — Room CRUD slice: nested create under owned house + room→devices cascade; parent-ownership + cross-tenant 404 + 401 (Wave 2)
-- [ ] 02-04-PLAN.md — Device CRUD slice: create + eager per-type state row (STATE-01), list by room/house, immutable-type PATCH, leaf delete; unknown-type 400 + 404 + 401 (Wave 2)
+- [x] 02-02-PLAN.md — House CRUD slice: create/list/view/update/soft-delete + cascade to rooms+devices; multi-tenancy 404 + 401 (Wave 2)
+- [x] 02-03-PLAN.md — Room CRUD slice: nested create under owned house + room→devices cascade; parent-ownership + cross-tenant 404 + 401 (Wave 2)
+- [x] 02-04-PLAN.md — Device CRUD slice: create + eager per-type state row (STATE-01), list by room/house, immutable-type PATCH, leaf delete; unknown-type 400 + 404 + 401 (Wave 2)
 
 ---
 
@@ -247,13 +248,38 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema & Data Conventions | 2/2 | Complete    | 2026-07-07 |
-| 2. Entity CRUD & Multi-Tenancy | 0/0 | Not started | - |
+| 2. Entity CRUD & Multi-Tenancy | 4/4 | Complete    | 2026-07-30 |
 | 3. Messaging Infrastructure | 0/0 | Not started | - |
 | 4. Command Handler & Dispatcher | 0/0 | Not started | - |
 | 5. Simulated Device Worker | 0/0 | Not started | - |
 | 6. Report Consumer, State Projection & Current-State Reads | 0/0 | Not started | - |
 | 7. Event History Routes | 0/0 | Not started | - |
 | 8. End-to-End Integration Tests | 0/0 | Not started | - |
+| 9. CI/CD Pipeline with Testcontainers | 1/1 | Complete   | 2026-08-20 |
+
+### Phase 9: CI/CD Pipeline with Testcontainers
+
+**Goal**: Every push and pull request automatically builds the project and runs the full test suite in GitHub Actions against an ephemeral, Testcontainers-provisioned MySQL 8.0 — so a red suite blocks merges and no developer machine or standing test database is involved. Local `npm test` continues to work exactly as today.
+
+**Depends on**: Nothing new (infrastructure — wraps the existing Phase 2 test suite; does not block later feature phases and can run before them)
+**Requirements**: CI-01 (suite runs on push + PR), CI-02 (ephemeral DB via Testcontainers, not a GHA service container), CI-03 (local `npm test` behavior preserved)
+
+**Success Criteria** (what must be TRUE):
+
+1. A workflow at `.github/workflows/ci.yml` triggers on `push` and `pull_request`, runs on `ubuntu-latest`, sets up Node (>=22), runs `npm ci`, then runs the CI test entrypoint. A failing test fails the job (non-zero exit).
+2. Tests in CI run against a MySQL 8.0 database provided by `@testcontainers/mysql` — no `services:` block, no external/standing database. The container's connection is handed to the suite as a `mysql://` `DATABASE_URL`.
+3. Committed Prisma migrations are applied to the fresh container DB via `prisma migrate deploy` before tests run; the committed driver-adapter client (`@prisma/adapter-mariadb`, pure-JS, no query-engine binary) runs unmodified on Linux CI.
+4. A `test:ci` npm script (backed by a runner that boots the container, injects `DATABASE_URL`/`JWT_SECRET`, applies migrations, spawns `node --test`, and always stops the container) is the single command CI invokes.
+5. Local `npm test` still loads `.env.testing` and is unchanged; the container path is entered only via an explicit flag (`USE_TESTCONTAINER_DB`), so the truncating suite can never be pointed at a real DB by a stray shell `DATABASE_URL`.
+6. `@testcontainers/mysql` is added as a devDependency (blocking package-install approval obtained before install).
+
+**Out of scope**: CD / deployment (no deploy target exists yet — add when there is a host or registry). Caching beyond `actions/setup-node` npm cache. Matrix builds across Node versions.
+
+**Plans:** 1/1 plans complete
+
+Plans:
+
+- [x] 09-01-PLAN.md — CI provisioning: gated `@testcontainers/mysql` install + `test:ci` runner (ephemeral MySQL 8.0 → `prisma migrate deploy` → `node --test`), USE_TESTCONTAINER_DB guard in `src/test/env.ts`, and `.github/workflows/ci.yml` on push + PR (Wave 1)
 
 ---
 

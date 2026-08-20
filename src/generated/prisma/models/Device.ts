@@ -31,7 +31,6 @@ export type DeviceAvgAggregateOutputType = {
   userId: number | null
   roomId: number | null
   houseId: number | null
-  stateId: number | null
 }
 
 export type DeviceSumAggregateOutputType = {
@@ -39,7 +38,6 @@ export type DeviceSumAggregateOutputType = {
   userId: bigint | null
   roomId: bigint | null
   houseId: bigint | null
-  stateId: bigint | null
 }
 
 export type DeviceMinAggregateOutputType = {
@@ -52,8 +50,6 @@ export type DeviceMinAggregateOutputType = {
   deviceType: string | null
   manufacturer: string | null
   model: string | null
-  stateType: string | null
-  stateId: bigint | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -69,8 +65,6 @@ export type DeviceMaxAggregateOutputType = {
   deviceType: string | null
   manufacturer: string | null
   model: string | null
-  stateType: string | null
-  stateId: bigint | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -86,8 +80,6 @@ export type DeviceCountAggregateOutputType = {
   deviceType: number
   manufacturer: number
   model: number
-  stateType: number
-  stateId: number
   deletedAt: number
   createdAt: number
   updatedAt: number
@@ -100,7 +92,6 @@ export type DeviceAvgAggregateInputType = {
   userId?: true
   roomId?: true
   houseId?: true
-  stateId?: true
 }
 
 export type DeviceSumAggregateInputType = {
@@ -108,7 +99,6 @@ export type DeviceSumAggregateInputType = {
   userId?: true
   roomId?: true
   houseId?: true
-  stateId?: true
 }
 
 export type DeviceMinAggregateInputType = {
@@ -121,8 +111,6 @@ export type DeviceMinAggregateInputType = {
   deviceType?: true
   manufacturer?: true
   model?: true
-  stateType?: true
-  stateId?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -138,8 +126,6 @@ export type DeviceMaxAggregateInputType = {
   deviceType?: true
   manufacturer?: true
   model?: true
-  stateType?: true
-  stateId?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -155,8 +141,6 @@ export type DeviceCountAggregateInputType = {
   deviceType?: true
   manufacturer?: true
   model?: true
-  stateType?: true
-  stateId?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -259,8 +243,6 @@ export type DeviceGroupByOutputType = {
   deviceType: string
   manufacturer: string | null
   model: string | null
-  stateType: string | null
-  stateId: bigint | null
   deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
@@ -299,11 +281,13 @@ export type DeviceWhereInput = {
   deviceType?: Prisma.StringFilter<"Device"> | string
   manufacturer?: Prisma.StringNullableFilter<"Device"> | string | null
   model?: Prisma.StringNullableFilter<"Device"> | string | null
-  stateType?: Prisma.StringNullableFilter<"Device"> | string | null
-  stateId?: Prisma.BigIntNullableFilter<"Device"> | bigint | number | null
   deletedAt?: Prisma.DateTimeNullableFilter<"Device"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Device"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Device"> | Date | string
+  lightState?: Prisma.XOR<Prisma.LightStateNullableScalarRelationFilter, Prisma.LightStateWhereInput> | null
+  acState?: Prisma.XOR<Prisma.AcStateNullableScalarRelationFilter, Prisma.AcStateWhereInput> | null
+  heaterState?: Prisma.XOR<Prisma.HeaterStateNullableScalarRelationFilter, Prisma.HeaterStateWhereInput> | null
+  sensorState?: Prisma.XOR<Prisma.SensorStateNullableScalarRelationFilter, Prisma.SensorStateWhereInput> | null
 }
 
 export type DeviceOrderByWithRelationInput = {
@@ -316,11 +300,13 @@ export type DeviceOrderByWithRelationInput = {
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrderInput | Prisma.SortOrder
   model?: Prisma.SortOrderInput | Prisma.SortOrder
-  stateType?: Prisma.SortOrderInput | Prisma.SortOrder
-  stateId?: Prisma.SortOrderInput | Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  lightState?: Prisma.LightStateOrderByWithRelationInput
+  acState?: Prisma.AcStateOrderByWithRelationInput
+  heaterState?: Prisma.HeaterStateOrderByWithRelationInput
+  sensorState?: Prisma.SensorStateOrderByWithRelationInput
   _relevance?: Prisma.DeviceOrderByRelevanceInput
 }
 
@@ -337,11 +323,13 @@ export type DeviceWhereUniqueInput = Prisma.AtLeast<{
   deviceType?: Prisma.StringFilter<"Device"> | string
   manufacturer?: Prisma.StringNullableFilter<"Device"> | string | null
   model?: Prisma.StringNullableFilter<"Device"> | string | null
-  stateType?: Prisma.StringNullableFilter<"Device"> | string | null
-  stateId?: Prisma.BigIntNullableFilter<"Device"> | bigint | number | null
   deletedAt?: Prisma.DateTimeNullableFilter<"Device"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Device"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Device"> | Date | string
+  lightState?: Prisma.XOR<Prisma.LightStateNullableScalarRelationFilter, Prisma.LightStateWhereInput> | null
+  acState?: Prisma.XOR<Prisma.AcStateNullableScalarRelationFilter, Prisma.AcStateWhereInput> | null
+  heaterState?: Prisma.XOR<Prisma.HeaterStateNullableScalarRelationFilter, Prisma.HeaterStateWhereInput> | null
+  sensorState?: Prisma.XOR<Prisma.SensorStateNullableScalarRelationFilter, Prisma.SensorStateWhereInput> | null
 }, "id" | "publicId">
 
 export type DeviceOrderByWithAggregationInput = {
@@ -354,8 +342,6 @@ export type DeviceOrderByWithAggregationInput = {
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrderInput | Prisma.SortOrder
   model?: Prisma.SortOrderInput | Prisma.SortOrder
-  stateType?: Prisma.SortOrderInput | Prisma.SortOrder
-  stateId?: Prisma.SortOrderInput | Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -379,8 +365,6 @@ export type DeviceScalarWhereWithAggregatesInput = {
   deviceType?: Prisma.StringWithAggregatesFilter<"Device"> | string
   manufacturer?: Prisma.StringNullableWithAggregatesFilter<"Device"> | string | null
   model?: Prisma.StringNullableWithAggregatesFilter<"Device"> | string | null
-  stateType?: Prisma.StringNullableWithAggregatesFilter<"Device"> | string | null
-  stateId?: Prisma.BigIntNullableWithAggregatesFilter<"Device"> | bigint | number | null
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Device"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Device"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Device"> | Date | string
@@ -388,7 +372,7 @@ export type DeviceScalarWhereWithAggregatesInput = {
 
 export type DeviceCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   roomId: bigint | number
   houseId: bigint | number
@@ -396,16 +380,18 @@ export type DeviceCreateInput = {
   deviceType: string
   manufacturer?: string | null
   model?: string | null
-  stateType?: string | null
-  stateId?: bigint | number | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lightState?: Prisma.LightStateCreateNestedOneWithoutDeviceInput
+  acState?: Prisma.AcStateCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateCreateNestedOneWithoutDeviceInput
 }
 
 export type DeviceUncheckedCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   roomId: bigint | number
   houseId: bigint | number
@@ -413,11 +399,13 @@ export type DeviceUncheckedCreateInput = {
   deviceType: string
   manufacturer?: string | null
   model?: string | null
-  stateType?: string | null
-  stateId?: bigint | number | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  lightState?: Prisma.LightStateUncheckedCreateNestedOneWithoutDeviceInput
+  acState?: Prisma.AcStateUncheckedCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateUncheckedCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateUncheckedCreateNestedOneWithoutDeviceInput
 }
 
 export type DeviceUpdateInput = {
@@ -430,11 +418,13 @@ export type DeviceUpdateInput = {
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUpdateOneWithoutDeviceNestedInput
+  acState?: Prisma.AcStateUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUpdateOneWithoutDeviceNestedInput
 }
 
 export type DeviceUncheckedUpdateInput = {
@@ -447,16 +437,18 @@ export type DeviceUncheckedUpdateInput = {
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUncheckedUpdateOneWithoutDeviceNestedInput
+  acState?: Prisma.AcStateUncheckedUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUncheckedUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUncheckedUpdateOneWithoutDeviceNestedInput
 }
 
 export type DeviceCreateManyInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   roomId: bigint | number
   houseId: bigint | number
@@ -464,8 +456,6 @@ export type DeviceCreateManyInput = {
   deviceType: string
   manufacturer?: string | null
   model?: string | null
-  stateType?: string | null
-  stateId?: bigint | number | null
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -481,8 +471,6 @@ export type DeviceUpdateManyMutationInput = {
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -498,8 +486,6 @@ export type DeviceUncheckedUpdateManyInput = {
   deviceType?: Prisma.StringFieldUpdateOperationsInput | string
   manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stateId?: Prisma.NullableBigIntFieldUpdateOperationsInput | bigint | number | null
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -521,8 +507,6 @@ export type DeviceCountOrderByAggregateInput = {
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrder
   model?: Prisma.SortOrder
-  stateType?: Prisma.SortOrder
-  stateId?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -533,7 +517,6 @@ export type DeviceAvgOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
   houseId?: Prisma.SortOrder
-  stateId?: Prisma.SortOrder
 }
 
 export type DeviceMaxOrderByAggregateInput = {
@@ -546,8 +529,6 @@ export type DeviceMaxOrderByAggregateInput = {
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrder
   model?: Prisma.SortOrder
-  stateType?: Prisma.SortOrder
-  stateId?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -563,8 +544,6 @@ export type DeviceMinOrderByAggregateInput = {
   deviceType?: Prisma.SortOrder
   manufacturer?: Prisma.SortOrder
   model?: Prisma.SortOrder
-  stateType?: Prisma.SortOrder
-  stateId?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -575,15 +554,419 @@ export type DeviceSumOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   roomId?: Prisma.SortOrder
   houseId?: Prisma.SortOrder
-  stateId?: Prisma.SortOrder
 }
 
-export type NullableBigIntFieldUpdateOperationsInput = {
-  set?: bigint | number | null
-  increment?: bigint | number
-  decrement?: bigint | number
-  multiply?: bigint | number
-  divide?: bigint | number
+export type DeviceScalarRelationFilter = {
+  is?: Prisma.DeviceWhereInput
+  isNot?: Prisma.DeviceWhereInput
+}
+
+export type DeviceCreateNestedOneWithoutLightStateInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutLightStateInput, Prisma.DeviceUncheckedCreateWithoutLightStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutLightStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+}
+
+export type DeviceUpdateOneRequiredWithoutLightStateNestedInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutLightStateInput, Prisma.DeviceUncheckedCreateWithoutLightStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutLightStateInput
+  upsert?: Prisma.DeviceUpsertWithoutLightStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeviceUpdateToOneWithWhereWithoutLightStateInput, Prisma.DeviceUpdateWithoutLightStateInput>, Prisma.DeviceUncheckedUpdateWithoutLightStateInput>
+}
+
+export type DeviceCreateNestedOneWithoutAcStateInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutAcStateInput, Prisma.DeviceUncheckedCreateWithoutAcStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutAcStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+}
+
+export type DeviceUpdateOneRequiredWithoutAcStateNestedInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutAcStateInput, Prisma.DeviceUncheckedCreateWithoutAcStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutAcStateInput
+  upsert?: Prisma.DeviceUpsertWithoutAcStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeviceUpdateToOneWithWhereWithoutAcStateInput, Prisma.DeviceUpdateWithoutAcStateInput>, Prisma.DeviceUncheckedUpdateWithoutAcStateInput>
+}
+
+export type DeviceCreateNestedOneWithoutHeaterStateInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutHeaterStateInput, Prisma.DeviceUncheckedCreateWithoutHeaterStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutHeaterStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+}
+
+export type DeviceUpdateOneRequiredWithoutHeaterStateNestedInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutHeaterStateInput, Prisma.DeviceUncheckedCreateWithoutHeaterStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutHeaterStateInput
+  upsert?: Prisma.DeviceUpsertWithoutHeaterStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeviceUpdateToOneWithWhereWithoutHeaterStateInput, Prisma.DeviceUpdateWithoutHeaterStateInput>, Prisma.DeviceUncheckedUpdateWithoutHeaterStateInput>
+}
+
+export type DeviceCreateNestedOneWithoutSensorStateInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutSensorStateInput, Prisma.DeviceUncheckedCreateWithoutSensorStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutSensorStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+}
+
+export type DeviceUpdateOneRequiredWithoutSensorStateNestedInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutSensorStateInput, Prisma.DeviceUncheckedCreateWithoutSensorStateInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutSensorStateInput
+  upsert?: Prisma.DeviceUpsertWithoutSensorStateInput
+  connect?: Prisma.DeviceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeviceUpdateToOneWithWhereWithoutSensorStateInput, Prisma.DeviceUpdateWithoutSensorStateInput>, Prisma.DeviceUncheckedUpdateWithoutSensorStateInput>
+}
+
+export type DeviceCreateWithoutLightStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  acState?: Prisma.AcStateCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceUncheckedCreateWithoutLightStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  acState?: Prisma.AcStateUncheckedCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateUncheckedCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateUncheckedCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceCreateOrConnectWithoutLightStateInput = {
+  where: Prisma.DeviceWhereUniqueInput
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutLightStateInput, Prisma.DeviceUncheckedCreateWithoutLightStateInput>
+}
+
+export type DeviceUpsertWithoutLightStateInput = {
+  update: Prisma.XOR<Prisma.DeviceUpdateWithoutLightStateInput, Prisma.DeviceUncheckedUpdateWithoutLightStateInput>
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutLightStateInput, Prisma.DeviceUncheckedCreateWithoutLightStateInput>
+  where?: Prisma.DeviceWhereInput
+}
+
+export type DeviceUpdateToOneWithWhereWithoutLightStateInput = {
+  where?: Prisma.DeviceWhereInput
+  data: Prisma.XOR<Prisma.DeviceUpdateWithoutLightStateInput, Prisma.DeviceUncheckedUpdateWithoutLightStateInput>
+}
+
+export type DeviceUpdateWithoutLightStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  acState?: Prisma.AcStateUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUpdateOneWithoutDeviceNestedInput
+}
+
+export type DeviceUncheckedUpdateWithoutLightStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  acState?: Prisma.AcStateUncheckedUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUncheckedUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUncheckedUpdateOneWithoutDeviceNestedInput
+}
+
+export type DeviceCreateWithoutAcStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lightState?: Prisma.LightStateCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceUncheckedCreateWithoutAcStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lightState?: Prisma.LightStateUncheckedCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateUncheckedCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateUncheckedCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceCreateOrConnectWithoutAcStateInput = {
+  where: Prisma.DeviceWhereUniqueInput
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutAcStateInput, Prisma.DeviceUncheckedCreateWithoutAcStateInput>
+}
+
+export type DeviceUpsertWithoutAcStateInput = {
+  update: Prisma.XOR<Prisma.DeviceUpdateWithoutAcStateInput, Prisma.DeviceUncheckedUpdateWithoutAcStateInput>
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutAcStateInput, Prisma.DeviceUncheckedCreateWithoutAcStateInput>
+  where?: Prisma.DeviceWhereInput
+}
+
+export type DeviceUpdateToOneWithWhereWithoutAcStateInput = {
+  where?: Prisma.DeviceWhereInput
+  data: Prisma.XOR<Prisma.DeviceUpdateWithoutAcStateInput, Prisma.DeviceUncheckedUpdateWithoutAcStateInput>
+}
+
+export type DeviceUpdateWithoutAcStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUpdateOneWithoutDeviceNestedInput
+}
+
+export type DeviceUncheckedUpdateWithoutAcStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUncheckedUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUncheckedUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUncheckedUpdateOneWithoutDeviceNestedInput
+}
+
+export type DeviceCreateWithoutHeaterStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lightState?: Prisma.LightStateCreateNestedOneWithoutDeviceInput
+  acState?: Prisma.AcStateCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceUncheckedCreateWithoutHeaterStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lightState?: Prisma.LightStateUncheckedCreateNestedOneWithoutDeviceInput
+  acState?: Prisma.AcStateUncheckedCreateNestedOneWithoutDeviceInput
+  sensorState?: Prisma.SensorStateUncheckedCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceCreateOrConnectWithoutHeaterStateInput = {
+  where: Prisma.DeviceWhereUniqueInput
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutHeaterStateInput, Prisma.DeviceUncheckedCreateWithoutHeaterStateInput>
+}
+
+export type DeviceUpsertWithoutHeaterStateInput = {
+  update: Prisma.XOR<Prisma.DeviceUpdateWithoutHeaterStateInput, Prisma.DeviceUncheckedUpdateWithoutHeaterStateInput>
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutHeaterStateInput, Prisma.DeviceUncheckedCreateWithoutHeaterStateInput>
+  where?: Prisma.DeviceWhereInput
+}
+
+export type DeviceUpdateToOneWithWhereWithoutHeaterStateInput = {
+  where?: Prisma.DeviceWhereInput
+  data: Prisma.XOR<Prisma.DeviceUpdateWithoutHeaterStateInput, Prisma.DeviceUncheckedUpdateWithoutHeaterStateInput>
+}
+
+export type DeviceUpdateWithoutHeaterStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUpdateOneWithoutDeviceNestedInput
+  acState?: Prisma.AcStateUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUpdateOneWithoutDeviceNestedInput
+}
+
+export type DeviceUncheckedUpdateWithoutHeaterStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUncheckedUpdateOneWithoutDeviceNestedInput
+  acState?: Prisma.AcStateUncheckedUpdateOneWithoutDeviceNestedInput
+  sensorState?: Prisma.SensorStateUncheckedUpdateOneWithoutDeviceNestedInput
+}
+
+export type DeviceCreateWithoutSensorStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lightState?: Prisma.LightStateCreateNestedOneWithoutDeviceInput
+  acState?: Prisma.AcStateCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceUncheckedCreateWithoutSensorStateInput = {
+  id?: bigint | number
+  publicId?: string
+  userId: bigint | number
+  roomId: bigint | number
+  houseId: bigint | number
+  name: string
+  deviceType: string
+  manufacturer?: string | null
+  model?: string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  lightState?: Prisma.LightStateUncheckedCreateNestedOneWithoutDeviceInput
+  acState?: Prisma.AcStateUncheckedCreateNestedOneWithoutDeviceInput
+  heaterState?: Prisma.HeaterStateUncheckedCreateNestedOneWithoutDeviceInput
+}
+
+export type DeviceCreateOrConnectWithoutSensorStateInput = {
+  where: Prisma.DeviceWhereUniqueInput
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutSensorStateInput, Prisma.DeviceUncheckedCreateWithoutSensorStateInput>
+}
+
+export type DeviceUpsertWithoutSensorStateInput = {
+  update: Prisma.XOR<Prisma.DeviceUpdateWithoutSensorStateInput, Prisma.DeviceUncheckedUpdateWithoutSensorStateInput>
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutSensorStateInput, Prisma.DeviceUncheckedCreateWithoutSensorStateInput>
+  where?: Prisma.DeviceWhereInput
+}
+
+export type DeviceUpdateToOneWithWhereWithoutSensorStateInput = {
+  where?: Prisma.DeviceWhereInput
+  data: Prisma.XOR<Prisma.DeviceUpdateWithoutSensorStateInput, Prisma.DeviceUncheckedUpdateWithoutSensorStateInput>
+}
+
+export type DeviceUpdateWithoutSensorStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUpdateOneWithoutDeviceNestedInput
+  acState?: Prisma.AcStateUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUpdateOneWithoutDeviceNestedInput
+}
+
+export type DeviceUncheckedUpdateWithoutSensorStateInput = {
+  id?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  publicId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  roomId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  houseId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  deviceType?: Prisma.StringFieldUpdateOperationsInput | string
+  manufacturer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  lightState?: Prisma.LightStateUncheckedUpdateOneWithoutDeviceNestedInput
+  acState?: Prisma.AcStateUncheckedUpdateOneWithoutDeviceNestedInput
+  heaterState?: Prisma.HeaterStateUncheckedUpdateOneWithoutDeviceNestedInput
 }
 
 
@@ -598,11 +981,13 @@ export type DeviceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   deviceType?: boolean
   manufacturer?: boolean
   model?: boolean
-  stateType?: boolean
-  stateId?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  lightState?: boolean | Prisma.Device$lightStateArgs<ExtArgs>
+  acState?: boolean | Prisma.Device$acStateArgs<ExtArgs>
+  heaterState?: boolean | Prisma.Device$heaterStateArgs<ExtArgs>
+  sensorState?: boolean | Prisma.Device$sensorStateArgs<ExtArgs>
 }, ExtArgs["result"]["device"]>
 
 
@@ -617,18 +1002,27 @@ export type DeviceSelectScalar = {
   deviceType?: boolean
   manufacturer?: boolean
   model?: boolean
-  stateType?: boolean
-  stateId?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type DeviceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicId" | "userId" | "roomId" | "houseId" | "name" | "deviceType" | "manufacturer" | "model" | "stateType" | "stateId" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["device"]>
+export type DeviceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "publicId" | "userId" | "roomId" | "houseId" | "name" | "deviceType" | "manufacturer" | "model" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["device"]>
+export type DeviceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  lightState?: boolean | Prisma.Device$lightStateArgs<ExtArgs>
+  acState?: boolean | Prisma.Device$acStateArgs<ExtArgs>
+  heaterState?: boolean | Prisma.Device$heaterStateArgs<ExtArgs>
+  sensorState?: boolean | Prisma.Device$sensorStateArgs<ExtArgs>
+}
 
 export type $DevicePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Device"
-  objects: {}
+  objects: {
+    lightState: Prisma.$LightStatePayload<ExtArgs> | null
+    acState: Prisma.$AcStatePayload<ExtArgs> | null
+    heaterState: Prisma.$HeaterStatePayload<ExtArgs> | null
+    sensorState: Prisma.$SensorStatePayload<ExtArgs> | null
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: bigint
     publicId: string
@@ -639,8 +1033,6 @@ export type $DevicePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     deviceType: string
     manufacturer: string | null
     model: string | null
-    stateType: string | null
-    stateId: bigint | null
     deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -984,6 +1376,10 @@ readonly fields: DeviceFieldRefs;
  */
 export interface Prisma__DeviceClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  lightState<T extends Prisma.Device$lightStateArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Device$lightStateArgs<ExtArgs>>): Prisma.Prisma__LightStateClient<runtime.Types.Result.GetResult<Prisma.$LightStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  acState<T extends Prisma.Device$acStateArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Device$acStateArgs<ExtArgs>>): Prisma.Prisma__AcStateClient<runtime.Types.Result.GetResult<Prisma.$AcStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  heaterState<T extends Prisma.Device$heaterStateArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Device$heaterStateArgs<ExtArgs>>): Prisma.Prisma__HeaterStateClient<runtime.Types.Result.GetResult<Prisma.$HeaterStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  sensorState<T extends Prisma.Device$sensorStateArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Device$sensorStateArgs<ExtArgs>>): Prisma.Prisma__SensorStateClient<runtime.Types.Result.GetResult<Prisma.$SensorStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1022,8 +1418,6 @@ export interface DeviceFieldRefs {
   readonly deviceType: Prisma.FieldRef<"Device", 'String'>
   readonly manufacturer: Prisma.FieldRef<"Device", 'String'>
   readonly model: Prisma.FieldRef<"Device", 'String'>
-  readonly stateType: Prisma.FieldRef<"Device", 'String'>
-  readonly stateId: Prisma.FieldRef<"Device", 'BigInt'>
   readonly deletedAt: Prisma.FieldRef<"Device", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Device", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Device", 'DateTime'>
@@ -1044,6 +1438,10 @@ export type DeviceFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Intern
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
+  /**
    * Filter, which Device to fetch.
    */
   where: Prisma.DeviceWhereUniqueInput
@@ -1062,6 +1460,10 @@ export type DeviceFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensions
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
+  /**
    * Filter, which Device to fetch.
    */
   where: Prisma.DeviceWhereUniqueInput
@@ -1079,6 +1481,10 @@ export type DeviceFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the Device
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
   /**
    * Filter, which Device to fetch.
    */
@@ -1128,6 +1534,10 @@ export type DeviceFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensions.
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
+  /**
    * Filter, which Device to fetch.
    */
   where?: Prisma.DeviceWhereInput
@@ -1175,6 +1585,10 @@ export type DeviceFindManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Omit specific fields from the Device
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
   /**
    * Filter, which Devices to fetch.
    */
@@ -1224,6 +1638,10 @@ export type DeviceCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
+  /**
    * The data needed to create a Device.
    */
   data: Prisma.XOR<Prisma.DeviceCreateInput, Prisma.DeviceUncheckedCreateInput>
@@ -1252,6 +1670,10 @@ export type DeviceUpdateArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Omit specific fields from the Device
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
   /**
    * The data needed to update a Device.
    */
@@ -1293,6 +1715,10 @@ export type DeviceUpsertArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
+  /**
    * The filter to search for the Device to update in case it exists.
    */
   where: Prisma.DeviceWhereUniqueInput
@@ -1319,6 +1745,10 @@ export type DeviceDeleteArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
+  /**
    * Filter which Device to delete.
    */
   where: Prisma.DeviceWhereUniqueInput
@@ -1339,6 +1769,82 @@ export type DeviceDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Intern
 }
 
 /**
+ * Device.lightState
+ */
+export type Device$lightStateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LightState
+   */
+  select?: Prisma.LightStateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LightState
+   */
+  omit?: Prisma.LightStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LightStateInclude<ExtArgs> | null
+  where?: Prisma.LightStateWhereInput
+}
+
+/**
+ * Device.acState
+ */
+export type Device$acStateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AcState
+   */
+  select?: Prisma.AcStateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AcState
+   */
+  omit?: Prisma.AcStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AcStateInclude<ExtArgs> | null
+  where?: Prisma.AcStateWhereInput
+}
+
+/**
+ * Device.heaterState
+ */
+export type Device$heaterStateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the HeaterState
+   */
+  select?: Prisma.HeaterStateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the HeaterState
+   */
+  omit?: Prisma.HeaterStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.HeaterStateInclude<ExtArgs> | null
+  where?: Prisma.HeaterStateWhereInput
+}
+
+/**
+ * Device.sensorState
+ */
+export type Device$sensorStateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SensorState
+   */
+  select?: Prisma.SensorStateSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SensorState
+   */
+  omit?: Prisma.SensorStateOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SensorStateInclude<ExtArgs> | null
+  where?: Prisma.SensorStateWhereInput
+}
+
+/**
  * Device without action
  */
 export type DeviceDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1350,4 +1856,8 @@ export type DeviceDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * Omit specific fields from the Device
    */
   omit?: Prisma.DeviceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DeviceInclude<ExtArgs> | null
 }

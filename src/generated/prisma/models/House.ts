@@ -304,7 +304,7 @@ export type HouseScalarWhereWithAggregatesInput = {
 
 export type HouseCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   name: string
   address?: string | null
@@ -315,7 +315,7 @@ export type HouseCreateInput = {
 
 export type HouseUncheckedCreateInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   name: string
   address?: string | null
@@ -348,7 +348,7 @@ export type HouseUncheckedUpdateInput = {
 
 export type HouseCreateManyInput = {
   id?: bigint | number
-  publicId: string
+  publicId?: string
   userId: bigint | number
   name: string
   address?: string | null

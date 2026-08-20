@@ -40,7 +40,14 @@ model RefreshToken {
 
 model House {
   id        BigInt    @id @default(autoincrement())
-  publicId  String    @unique @map("public_id") @db.VarChar(21)
+  // @default(nanoid(21)) is a TYPE-LEVEL AFFORDANCE ONLY. It exists so public_id
+  // is optional in Prisma's create input (callers never pass it); it does NOT
+  // make the column nullable — public_id stays NOT NULL. The app-side CSPRNG
+  // minter in src/lib/prisma.ts sets publicId on every create, so this
+  // engine-side nanoid() never actually fires at runtime and T-2-01 is satisfied
+  // by the hook. Prisma mints such defaults in the query engine, so no SQL
+  // DEFAULT is emitted and the database is untouched by this attribute.
+  publicId  String    @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21)
   userId    BigInt    @map("user_id")
   name      String
   address   String?
@@ -54,7 +61,7 @@ model House {
 
 model Room {
   id        BigInt    @id @default(autoincrement())
-  publicId  String    @unique @map("public_id") @db.VarChar(21)
+  publicId  String    @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21) // type-level affordance; app-side minter supplies the value (see House)
   houseId   BigInt    @map("house_id")
   userId    BigInt    @map("user_id") // denormalized (DATA-02) — ownership checks never join through the hierarchy
   name      String
@@ -71,7 +78,7 @@ model Room {
 
 model Device {
   id           BigInt    @id @default(autoincrement())
-  publicId     String    @unique @map("public_id") @db.VarChar(21)
+  publicId     String    @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21) // type-level affordance; app-side minter supplies the value (see House)
   userId       BigInt    @map("user_id") // denormalized (DATA-02) — ownership checks never join through the hierarchy
   roomId       BigInt    @map("room_id")
   houseId      BigInt    @map("house_id") // denormalized (DATA-02) — list-by-house never joins through rooms
@@ -79,22 +86,26 @@ model Device {
   deviceType   String    @map("device_type") // validated in TypeBox, not a DB enum (D-06)
   manufacturer String?
   model        String?
-  stateType    String?   @map("state_type") // morph discriminator — which per-type state table state_id points to
-  stateId      BigInt?   @map("state_id") // morph target id, no @relation (relationMode=prisma; one field, four possible tables)
   deletedAt    DateTime? @map("deleted_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // The device's one state facet; deviceType says which is populated. Each child holds a
+  // unique device_id, so no morph pointer on the device. relationMode=prisma, so no DB FK.
+  lightState  LightState?
+  acState     AcState?
+  heaterState HeaterState?
+  sensorState SensorState?
 
   @@map("devices")
   @@index([userId])
   @@index([roomId])
   @@index([houseId])
-  @@index([stateId])
 }
 
 model Command {
   id        BigInt   @id @default(autoincrement())
-  publicId  String   @unique @map("public_id") @db.VarChar(21)
+  publicId  String   @unique @default(nanoid(21)) @map("public_id") @db.VarChar(21) // type-level affordance; app-side minter supplies the value (see House)
   userId    BigInt   @map("user_id") // denormalized (DATA-02) — GET /commands/:id never joins through targets/devices
   status    String   @default("received") // received|rejected|pending|done|partially_failed|failed|no_targets — TypeBox-validated (D-06)
   createdAt DateTime @default(now()) @map("created_at")
@@ -126,6 +137,8 @@ model LightState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("light_states")
   @@unique([deviceId])
@@ -141,6 +154,8 @@ model AcState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("ac_states")
   @@unique([deviceId])
@@ -155,6 +170,8 @@ model HeaterState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("heater_states")
   @@unique([deviceId])
@@ -169,6 +186,8 @@ model SensorState {
   lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
+  device      Device    @relation(fields: [deviceId], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   @@map("sensor_states")
   @@unique([deviceId])

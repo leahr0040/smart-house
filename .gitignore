@@ -59,6 +59,8 @@ profile*
 
 # environment variables
 .env
+.env.*
+!.env.example
 
 # compiled output
 dist/

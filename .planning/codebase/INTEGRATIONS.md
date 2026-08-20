@@ -13,10 +13,11 @@ The codebase is a self-contained authentication API. No external API integration
 ## Data Storage
 
 **Databases:**
-- MariaDB 10.5+
-  - Connection: Via `DATABASE_URL` environment variable (connection string)
+- MySQL 8.0 (`8.0.46` on the dev server, verified 2026-08-03)
+  - Connection: Via `DATABASE_URL` environment variable (`mysql://` connection string)
   - Client: Prisma ORM (`@prisma/client` + `@prisma/adapter-mariadb` driver-adapter)
   - Driver Adapter: Uses `@prisma/adapter-mariadb` instead of the standard Prisma TCP connector, enabling custom connection pooling
+  - **The adapter's name is not the engine.** `@prisma/adapter-mariadb` is Prisma's single driver adapter for the whole MySQL/MariaDB family — it wraps the `mariadb` npm client, which connects to MySQL servers too. This database is MySQL. Never pick a MariaDB image, service, or dialect from the package name.
   - Schema: `prisma/schema.prisma` (two models: `User` and `RefreshToken`)
   - Migrations: Managed via `npm run prisma:migrate` (dev) and Prisma Migrate on production deployment
 
@@ -93,7 +94,7 @@ The codebase is a self-contained authentication API. No external API integration
 ## Environment Configuration
 
 **Required env vars:**
-- `DATABASE_URL` - MariaDB connection string (driver-adapter format)
+- `DATABASE_URL` - MySQL connection string (driver-adapter format)
   - Example: `mysql://user:password@localhost:3306/smart_house`
   - Parsed and validated by Zod schema in `src/lib/env.ts`
   - Application exits if missing

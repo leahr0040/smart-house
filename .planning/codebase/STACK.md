@@ -32,7 +32,7 @@
 
 **Database:**
 - Prisma 7.8.0 - ORM and database migrations
-- @prisma/adapter-mariadb 7.8.0 - MariaDB connection adapter (driver-adapter pattern)
+- @prisma/adapter-mariadb 7.8.0 - MySQL connection adapter (driver-adapter pattern). Despite the name, this is Prisma's one adapter for the whole MySQL/MariaDB family and the engine here is **MySQL 8.0**, not MariaDB
 
 **Validation:**
 - Zod 4.4.3 - Runtime schema validation (environment variables)
@@ -72,7 +72,7 @@
 - Loaded via `dotenv/config` in `src/lib/env.ts` at application startup
 - Validated with Zod schema at runtime; application exits if validation fails
 - Key configurations required:
-  - `DATABASE_URL` (required) - MariaDB connection string (driver-adapter format)
+  - `DATABASE_URL` (required) - MySQL connection string (driver-adapter format)
   - `JWT_SECRET` (required) - Secret for signing JWTs; minimum 1 character
   - `PORT` (optional, default: 3000) - HTTP server listen port
   - `HOST` (optional, default: 127.0.0.1) - HTTP server bind address
@@ -92,11 +92,11 @@
 - Node.js 18+
 - npm 7+
 - Windows, macOS, or Linux with POSIX shell support (Bash/Zsh)
-- MariaDB 10.5+ (for `DATABASE_URL` connection)
+- MySQL 8.0 (for `DATABASE_URL` connection)
 
 **Production:**
 - Node.js 18+ LTS (production-grade runtime)
-- MariaDB 10.5+ (production database)
+- MySQL 8.0 (production database)
 - Environment variables configured (DATABASE_URL, JWT_SECRET at minimum)
 - No container orchestration specified; designed for VM or bare-metal deployment
 

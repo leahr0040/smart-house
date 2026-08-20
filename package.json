@@ -7,7 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "tsc && node --test dist/src/test/**/*.test.js",
+    "test": "tsc && node --test --test-concurrency=1 dist/src/test/**/*.test.js",
+    "test:ci": "tsc && node dist/src/test/run-with-container.js",
     "start": "node dist/src/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
@@ -18,20 +19,28 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@fastify/autoload": "^6.0.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/jwt": "^10.0.0",
     "@fastify/sensible": "^6.0.0",
+    "@fastify/type-provider-typebox": "^5.2.0",
     "@prisma/adapter-mariadb": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@sinclair/typebox": "^0.34.52",
     "bcrypt": "^5.1.1",
     "dotenv": "^17.4.2",
     "fastify": "^5.8.5",
     "fastify-plugin": "^5.0.0",
+    "nanoid": "^3.3.16",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.5.0",
+    "@testcontainers/mysql": "^12.0.4",
     "@types/bcrypt": "^5.0.0",
     "@types/node": "^25.6.0",
     "prisma": "^7.8.0",

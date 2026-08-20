@@ -246,7 +246,7 @@ test('login with invalid credentials returns 401', async (t) => {
 5. **Protected Route:** Test `/me` with valid token, expired token, no token
 
 **Test Database Strategy:**
-- Current: Tests run against real MariaDB
+- Current: Tests run against real MySQL
 - Recommendation: Add transaction rollback between tests OR separate test database
 - Prisma provides transaction API: wrap each test in `prisma.$transaction()` with rollback
 
