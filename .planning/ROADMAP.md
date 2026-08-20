@@ -259,7 +259,7 @@
 
 ### Phase 9: CI/CD Pipeline with Testcontainers
 
-**Goal**: Every push and pull request automatically builds the project and runs the full test suite in GitHub Actions against an ephemeral, Testcontainers-provisioned MariaDB — so a red suite blocks merges and no developer machine or standing test database is involved. Local `npm test` continues to work exactly as today.
+**Goal**: Every push and pull request automatically builds the project and runs the full test suite in GitHub Actions against an ephemeral, Testcontainers-provisioned MySQL 8.0 — so a red suite blocks merges and no developer machine or standing test database is involved. Local `npm test` continues to work exactly as today.
 
 **Depends on**: Nothing new (infrastructure — wraps the existing Phase 2 test suite; does not block later feature phases and can run before them)
 **Requirements**: CI-01 (suite runs on push + PR), CI-02 (ephemeral DB via Testcontainers, not a GHA service container), CI-03 (local `npm test` behavior preserved)
@@ -267,11 +267,11 @@
 **Success Criteria** (what must be TRUE):
 
 1. A workflow at `.github/workflows/ci.yml` triggers on `push` and `pull_request`, runs on `ubuntu-latest`, sets up Node (>=22), runs `npm ci`, then runs the CI test entrypoint. A failing test fails the job (non-zero exit).
-2. Tests in CI run against a MariaDB provided by `@testcontainers/mariadb` — no `services:` block, no external/standing database. The container's connection is handed to the suite as a `mysql://` `DATABASE_URL`.
+2. Tests in CI run against a MySQL 8.0 database provided by `@testcontainers/mysql` — no `services:` block, no external/standing database. The container's connection is handed to the suite as a `mysql://` `DATABASE_URL`.
 3. Committed Prisma migrations are applied to the fresh container DB via `prisma migrate deploy` before tests run; the committed driver-adapter client (`@prisma/adapter-mariadb`, pure-JS, no query-engine binary) runs unmodified on Linux CI.
 4. A `test:ci` npm script (backed by a runner that boots the container, injects `DATABASE_URL`/`JWT_SECRET`, applies migrations, spawns `node --test`, and always stops the container) is the single command CI invokes.
 5. Local `npm test` still loads `.env.testing` and is unchanged; the container path is entered only via an explicit flag (`USE_TESTCONTAINER_DB`), so the truncating suite can never be pointed at a real DB by a stray shell `DATABASE_URL`.
-6. `@testcontainers/mariadb` is added as a devDependency (blocking package-install approval obtained before install).
+6. `@testcontainers/mysql` is added as a devDependency (blocking package-install approval obtained before install).
 
 **Out of scope**: CD / deployment (no deploy target exists yet — add when there is a host or registry). Caching beyond `actions/setup-node` npm cache. Matrix builds across Node versions.
 
@@ -279,7 +279,7 @@
 
 Plans:
 
-- [x] 09-01-PLAN.md — CI provisioning: gated `@testcontainers/mariadb` install + `test:ci` runner (ephemeral MariaDB → `prisma migrate deploy` → `node --test`), USE_TESTCONTAINER_DB guard in `src/test/env.ts`, and `.github/workflows/ci.yml` on push + PR (Wave 1)
+- [x] 09-01-PLAN.md — CI provisioning: gated `@testcontainers/mysql` install + `test:ci` runner (ephemeral MySQL 8.0 → `prisma migrate deploy` → `node --test`), USE_TESTCONTAINER_DB guard in `src/test/env.ts`, and `.github/workflows/ci.yml` on push + PR (Wave 1)
 
 ---
 
