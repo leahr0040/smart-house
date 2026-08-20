@@ -1,0 +1,124 @@
+import type { FastifyPluginAsync, FastifyReply } from 'fastify'
+import { Prisma } from '../../generated/prisma/client'
+import { loginUser } from '../../services/auth'
+import { createUser, getUserById } from '../../services/user'
+import { REFRESH_TOKEN_EXPIRES_DAYS, verifyRefreshToken, revokeRefreshToken } from '../../services/refresh-token'
+import { loginRouteSchema, meRouteSchema, registerRouteSchema, refreshRouteSchema, logoutRouteSchema } from './schemas'
+
+type RegisterBody = {
+  email: string
+  password: string
+  name?: string
+}
+
+type LoginBody = {
+  email: string
+  password: string
+}
+
+const plugin: FastifyPluginAsync = async (fastify, _opts) => {
+  function setRefreshCookie(reply: FastifyReply, token: string) {
+    reply.setCookie('refreshToken', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      path: '/auth',
+      maxAge: REFRESH_TOKEN_EXPIRES_DAYS * 24 * 60 * 60
+    })
+  }
+
+  function clearRefreshCookie(reply: FastifyReply) {
+    reply.clearCookie('refreshToken', { path: '/auth' })
+  }
+
+  fastify.post<{ Body: RegisterBody }>('/register', {
+    schema: registerRouteSchema
+  }, async (request, reply) => {
+    let user
+    try {
+      user = await createUser(request.body)
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw fastify.httpErrors.conflict('Email already in use')
+      }
+      throw err
+    }
+
+    const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
+    setRefreshCookie(reply, refreshToken)
+
+    reply.send({ accessToken, expiresAt, user: { id: Number(user.id), email: user.email, name: user.name } })
+  })
+
+  fastify.post<{ Body: LoginBody }>('/login', {
+    schema: loginRouteSchema
+  }, async (request, reply) => {
+    const user = await loginUser(request.body)
+
+    if (!user) {
+      throw fastify.httpErrors.unauthorized('Invalid credentials')
+    }
+
+    const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
+    setRefreshCookie(reply, refreshToken)
+
+    reply.send({ accessToken, expiresAt, user: { id: Number(user.id), email: user.email, name: user.name } })
+  })
+
+  fastify.get('/me', {
+    preHandler: fastify.authenticate,
+    schema: meRouteSchema
+  }, async (request, reply) => {
+    const user = await getUserById(BigInt(request.user.id))
+
+    if (!user) {
+      throw fastify.httpErrors.notFound('User not found')
+    }
+
+    reply.send({ id: Number(user.id), email: user.email, name: user.name })
+  })
+
+  fastify.post('/refresh', {
+    schema: refreshRouteSchema
+  }, async (request, reply) => {
+    const raw = request.cookies.refreshToken
+
+    if (!raw) {
+      throw fastify.httpErrors.unauthorized('Missing refresh token')
+    }
+
+    const user = await verifyRefreshToken(raw)
+
+    if (!user) {
+      clearRefreshCookie(reply)
+      throw fastify.httpErrors.unauthorized('Invalid or expired refresh token')
+    }
+
+    const revoked = await revokeRefreshToken(raw)
+
+    if (!revoked) {
+      clearRefreshCookie(reply)
+      throw fastify.httpErrors.unauthorized('Refresh token already used')
+    }
+
+    const { accessToken, refreshToken, expiresAt } = await fastify.generateTokens(user)
+    setRefreshCookie(reply, refreshToken)
+
+    reply.send({ accessToken, expiresAt, user: { id: Number(user.id), email: user.email, name: user.name } })
+  })
+
+  fastify.post('/logout', {
+    schema: logoutRouteSchema
+  }, async (request, reply) => {
+    const raw = request.cookies.refreshToken
+
+    if (raw) {
+      await revokeRefreshToken(raw)
+    }
+
+    clearRefreshCookie(reply)
+    reply.send({ message: 'Logged out' })
+  })
+}
+
+export default plugin

@@ -1,0 +1,42 @@
+{
+  "name": "smart-house",
+  "version": "1.0.0",
+  "description": "Smart house API built with Fastify.",
+  "main": "dist/src/server.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "tsc && node --test dist/src/test/**/*.test.js",
+    "start": "node dist/src/server.js",
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/autoload": "^6.0.0",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/jwt": "^10.0.0",
+    "@fastify/sensible": "^6.0.0",
+    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.8.5",
+    "fastify-plugin": "^5.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/node": "^25.6.0",
+    "prisma": "^7.8.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

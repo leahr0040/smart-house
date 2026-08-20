@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  relationMode = "prisma"
+
+}
+
+model User {
+  id        BigInt     @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  name      String?
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  deletedAt DateTime?  @map("deleted_at")
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        BigInt    @id @default(autoincrement())
+  tokenHash String    @unique @map("token_hash")
+  userId    BigInt    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id])
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+  @@index([userId])
+}
+
+model House {
+  id        BigInt    @id @default(autoincrement())
+  publicId  String    @unique @map("public_id") @db.VarChar(21)
+  userId    BigInt    @map("user_id")
+  name      String
+  address   String?
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("houses")
+  @@index([userId])
+}
+
+model Room {
+  id        BigInt    @id @default(autoincrement())
+  publicId  String    @unique @map("public_id") @db.VarChar(21)
+  houseId   BigInt    @map("house_id")
+  userId    BigInt    @map("user_id") // denormalized (DATA-02) — ownership checks never join through the hierarchy
+  name      String
+  floor     Int       @default(0)
+  roomType  String?   @map("room_type")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("rooms")
+  @@index([houseId])
+  @@index([userId])
+}
+
+model Device {
+  id           BigInt    @id @default(autoincrement())
+  publicId     String    @unique @map("public_id") @db.VarChar(21)
+  userId       BigInt    @map("user_id") // denormalized (DATA-02) — ownership checks never join through the hierarchy
+  roomId       BigInt    @map("room_id")
+  houseId      BigInt    @map("house_id") // denormalized (DATA-02) — list-by-house never joins through rooms
+  name         String
+  deviceType   String    @map("device_type") // validated in TypeBox, not a DB enum (D-06)
+  manufacturer String?
+  model        String?
+  stateType    String?   @map("state_type") // morph discriminator — which per-type state table state_id points to
+  stateId      BigInt?   @map("state_id") // morph target id, no @relation (relationMode=prisma; one field, four possible tables)
+  deletedAt    DateTime? @map("deleted_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("devices")
+  @@index([userId])
+  @@index([roomId])
+  @@index([houseId])
+  @@index([stateId])
+}
+
+model Command {
+  id        BigInt   @id @default(autoincrement())
+  publicId  String   @unique @map("public_id") @db.VarChar(21)
+  userId    BigInt   @map("user_id") // denormalized (DATA-02) — GET /commands/:id never joins through targets/devices
+  status    String   @default("received") // received|rejected|pending|done|partially_failed|failed|no_targets — TypeBox-validated (D-06)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("commands")
+  @@index([userId])
+}
+
+model CommandTarget {
+  id         BigInt   @id @default(autoincrement()) // no public_id — internal-only (D-11)
+  commandId  BigInt   @map("command_id")
+  deviceId   BigInt   @map("device_id")
+  status     String   @default("pending") // pending|done|failed — CAS-transitioned (first-terminal-wins) in a later phase
+  deadlineAt DateTime @map("deadline_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("command_targets")
+  @@index([commandId])
+  @@index([deviceId])
+}
+
+model LightState {
+  id          BigInt    @id @default(autoincrement()) // no public_id — internal-only (D-11)
+  deviceId    BigInt    @map("device_id")
+  isOn        Boolean   @default(false) @map("is_on")
+  brightness  Int       @default(0) // no 0-100 DB constraint; TypeBox validates the range (D-01)
+  lastEventAt DateTime? @map("last_event_at")
+  lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("light_states")
+  @@unique([deviceId])
+}
+
+model AcState {
+  id          BigInt    @id @default(autoincrement()) // no public_id — internal-only (D-11)
+  deviceId    BigInt    @map("device_id")
+  isOn        Boolean   @default(false) @map("is_on")
+  targetTemp  Int       @map("target_temp")
+  mode        String // cool|heat|fan|auto — plain column, TypeBox-validated, not a DB enum (D-02/D-06)
+  lastEventAt DateTime? @map("last_event_at")
+  lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("ac_states")
+  @@unique([deviceId])
+}
+
+model HeaterState {
+  id          BigInt    @id @default(autoincrement()) // no public_id — internal-only (D-11)
+  deviceId    BigInt    @map("device_id")
+  isOn        Boolean   @default(false) @map("is_on")
+  targetTemp  Int       @map("target_temp")
+  lastEventAt DateTime? @map("last_event_at")
+  lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("heater_states")
+  @@unique([deviceId])
+}
+
+model SensorState {
+  id          BigInt    @id @default(autoincrement()) // no public_id — internal-only (D-11)
+  deviceId    BigInt    @map("device_id")
+  reading     Decimal   @db.Decimal(6, 2) // e.g. -999.99..9999.99 — ample for temp/humidity/lux sensors (D-04)
+  unit        String
+  lastEventAt DateTime? @map("last_event_at")
+  lastEventId BigInt?   @map("last_event_id") // references events.id (ordering key) — NOT events.event_id
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("sensor_states")
+  @@unique([deviceId])
+}
+
+model Event {
+  id         BigInt   @id @default(autoincrement()) // ordering/cursor key; the guard-comparison target each state table's tuple guard points at (D-12)
+  eventId    String   @unique @map("event_id") @db.Char(36) // separate idempotency key, deterministically minted per effect/report (D-12)
+  entityType String   @map("entity_type") // device|command — plain String, TypeBox-validated (D-06)
+  source     String
+  eventKind  String   @map("event_kind")
+  deviceId   BigInt?  @map("device_id") // nullable — null for command-lifecycle rows
+  deviceType String?  @map("device_type")
+  commandId  BigInt?  @map("command_id")
+  snapshot   Json // the one JSON exemption — verbatim effect/report payload (D-07)
+  recordedAt DateTime @map("recorded_at") // producer-minted event-time — NOT createdAt/updatedAt
+
+  @@map("events")
+  @@index([deviceId, recordedAt])
+  @@index([commandId])
+}
